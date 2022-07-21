@@ -25,7 +25,7 @@ public class HttpExecutor {
     }
 
     public RequestResult execute() throws IOException {
-        return new RequestResult(201, new ByteArrayInputStream("RESPONSE".getBytes()));
+        return new RequestResult(201, new ByteArrayInputStream("{username: 'user', password: 'pw'}".getBytes()));
         /*
         HttpPost request = new HttpPost(url);
         StringEntity params = new StringEntity(body, ContentType.APPLICATION_JSON);
