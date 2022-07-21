@@ -1,4 +1,4 @@
-package com.ptt;
+package com.ptt.boundary;
 
 import com.ptt.entities.dto.*;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
@@ -10,7 +10,7 @@ import java.util.List;
 
 @Path("/api/plan/{planId}")
 @RegisterRestClient(baseUri = "http://localhost:8080")
-public interface Service {
+public interface RestService {
     @GET
     PlanDto getPlanById(@PathParam("planId") long planId);
 

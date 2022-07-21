@@ -1,14 +1,12 @@
-package com.ptt.service;
+package com.ptt.control;
 
-import com.ptt.Service;
+import com.ptt.boundary.RestService;
 import com.ptt.entities.*;
 import com.ptt.entities.dto.*;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +15,7 @@ import java.util.Map;
 public class PlanService {
     @Inject
     @RestClient
-    Service service;
+    RestService service;
 
     public Plan readPlan(long planId) {
         PlanDto planDto = service.getPlanById(planId);
