@@ -3,6 +3,7 @@ package com.ptt.service;
 import com.ptt.Service;
 import com.ptt.entities.*;
 import com.ptt.entities.dto.*;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -15,95 +16,56 @@ import java.util.Map;
 @ApplicationScoped
 public class PlanService {
     @Inject
+    @RestClient
     Service service;
 
     public Plan readPlan(long planId) {
         PlanDto planDto = service.getPlanById(planId);
-        Plan plan = getPlan(planDto);
+        Plan plan = new Plan(planDto.id, planDto.name, planDto.description);
         Map<Long, InputArgument> inputMap = new HashMap<>();
         Map<Long, OutputArgument> outputMap = new HashMap<>();
 
-        List<StepDto> stepDtos = service.getStepsByPlanId(planId);
-        for (StepDto dto : stepDtos) {
-            Step step = getStep(dto);
-            step.plan = plan;
-            plan.steps.add(step);
-        }
-        for (Step step : plan.steps) {
-            List<OutputArgumentDto> outArgsDtoList = service.getOutputArgumentsByStepId(plan.id, step.id);
-            for (OutputArgumentDto outArgDto : outArgsDtoList) {
-                OutputArgument outArg = getOutputArgument(outArgDto);
-                outArg.step = step;
-                outputMap.put(outArg.id, outArg);
-                step.outputArguments.add(outArg);
+        List<StepDto> stepDtoList = service.getStepsByPlanId(planId);
+        for (StepDto dto : stepDtoList) {
+            Step step = new Step(dto.id, plan, dto.name, dto.description, dto.method, dto.url, dto.body);
+            plan.getSteps().add(step);
+            if (step.getId() == planDto.startId) {
+                plan.setStart(step);
             }
-            List<InputArgumentDto> inArgsDtoList = service.getInputArgumentsByStepId(plan.id, step.id);
+        }
+        for (Step step : plan.getSteps()) {
+            List<OutputArgumentDto> outArgsDtoList = service.getOutputArgumentsByStepId(plan.getId(), step.getId());
+            for (OutputArgumentDto outArgDto : outArgsDtoList) {
+                OutputArgument outArg = new OutputArgument(outArgDto.id, step, outArgDto.name, outArgDto.jsonLocation);
+                outputMap.put(outArg.getId(), outArg);
+                step.getOutputArguments().add(outArg);
+            }
+            List<InputArgumentDto> inArgsDtoList = service.getInputArgumentsByStepId(plan.getId(), step.getId());
             for (InputArgumentDto inArgDto : inArgsDtoList) {
-                InputArgument inputArgument = getInputArgument(inArgDto);
-                inputArgument.step = step;
-                inputMap.put(inputArgument.id, inputArgument);
-                step.inputArguments.add(inputArgument);
+                InputArgument inputArgument = new InputArgument(inArgDto.id, step, inArgDto.name);
+                inputMap.put(inputArgument.getId(), inputArgument);
+                step.getInputArguments().add(inputArgument);
             }
         }
 
-        for (Step step : plan.steps) {
+        for (Step step : plan.getSteps()) {
             List<StepParameterRelationDto> relationDtoList =
-                    service.getStepParameterRelationByStepIdFrom(plan.id, step.id);
+                    service.getStepParameterRelationByStepIdFrom(plan.getId(), step.getId());
             Map<Long, NextStep> nextStepMap = new HashMap<>();
             for (StepParameterRelationDto stepParameterRelationDto : relationDtoList) {
                 InputArgument inArg = inputMap.get(stepParameterRelationDto.fromId);
                 OutputArgument outArg = outputMap.get(stepParameterRelationDto.toId);
-                NextStep nextStep = nextStepMap.get(inArg.step.id);
+                NextStep nextStep = nextStepMap.get(inArg.getStep().getId());
                 if (nextStep == null) {
-                    nextStep = new NextStep();
+                    nextStep = new NextStep(inArg.getStep());
+                    step.getNextSteps().add(nextStep);
                 }
-                nextStep.next = inArg.step;
-                StepParameterRelation rel = new StepParameterRelation();
-                rel.from = outArg;
-                rel.to = inArg;
-                nextStep.params.add(rel);
-                nextStepMap.putIfAbsent(inArg.step.id, nextStep);
+                StepParameterRelation rel = new StepParameterRelation(inArg, outArg);
+                nextStep.getParams().add(rel);
+                nextStepMap.putIfAbsent(inArg.getStep().getId(), nextStep);
             }
         }
 
-        return plan;
-    }
-
-    private InputArgument getInputArgument(InputArgumentDto inArgDto) {
-        InputArgument inputArgument = new InputArgument();
-        inputArgument.id = inArgDto.id;
-        inputArgument.name = inArgDto.name;
-        return inputArgument;
-    }
-
-    private OutputArgument getOutputArgument(OutputArgumentDto outArgDto) {
-        OutputArgument outArg = new OutputArgument();
-        outArg.id = outArgDto.id;
-        outArg.name = outArgDto.name;
-        outArg.jsonLocation = outArgDto.jsonLocation;
-        return outArg;
-    }
-
-    private Step getStep(StepDto dto) {
-        Step step = new Step();
-        step.id = dto.id;
-        step.name = dto.name;
-        step.description = dto.description;
-        step.method = dto.method;
-        step.url = dto.url;
-        step.body = dto.body;
-        step.outputArguments = new ArrayList<>();
-        step.inputArguments = new ArrayList<>();
-        step.nextSteps = new ArrayList<>();
-        return step;
-    }
-
-    private Plan getPlan(PlanDto planDto) {
-        Plan plan = new Plan();
-        plan.id = planDto.id;
-        plan.name = planDto.name;
-        plan.description = planDto.description;
-        plan.steps = new ArrayList<>();
         return plan;
     }
 }

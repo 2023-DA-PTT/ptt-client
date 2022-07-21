@@ -9,7 +9,7 @@ import javax.ws.rs.PathParam;
 import java.util.List;
 
 @Path("/api/plan/{planId}")
-@RegisterRestClient
+@RegisterRestClient(baseUri = "http://localhost:8080")
 public interface Service {
     @GET
     PlanDto getPlanById(@PathParam("planId") long planId);
