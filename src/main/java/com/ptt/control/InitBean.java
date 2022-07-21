@@ -34,14 +34,17 @@ public class InitBean {
                     .setUrl(step.getUrl())
                     .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
                     .execute();
-
-            for (NextStep nextStep : step.getNextSteps()) {
-                QueueElement newQueueElement = new QueueElement(nextStep.getNext());
-                for (StepParameterRelation param : nextStep.getParams()) {
-                    newQueueElement.getParameters().put(param.getTo().getName(),
-                            result.getContent(param.getFrom().getJsonLocation()));
+            try {
+                for (NextStep nextStep : step.getNextSteps()) {
+                    QueueElement newQueueElement = new QueueElement(nextStep.getNext());
+                    for (StepParameterRelation param : nextStep.getParams()) {
+                        newQueueElement.getParameters().put(param.getTo().getName(),
+                                result.getContent(param.getFrom().getJsonLocation()));
+                    }
+                    stepQueue.add(newQueueElement);
                 }
-                stepQueue.add(newQueueElement);
+            } catch (IOException e) {
+                System.out.println("Could not read output parameter from response body!");
             }
         }
     }
