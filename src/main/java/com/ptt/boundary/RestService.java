@@ -8,8 +8,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import java.util.List;
 
-@Path("/api/plan/{planId}")
-@RegisterRestClient(baseUri = "http://localhost:8080")
+@Path("plan/{planId}")
+@RegisterRestClient
 public interface RestService {
     @GET
     PlanDto getPlanById(@PathParam("planId") long planId);
