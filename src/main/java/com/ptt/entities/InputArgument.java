@@ -1,9 +1,5 @@
 package com.ptt.entities;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-
-import javax.persistence.*;
-
 public class InputArgument {
     private final Long id;
     private final Step step;

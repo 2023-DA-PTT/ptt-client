@@ -1,8 +1,5 @@
 package com.ptt.entities;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-
-import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
