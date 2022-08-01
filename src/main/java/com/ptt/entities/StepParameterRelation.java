@@ -2,8 +2,6 @@ package com.ptt.entities;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 
-import javax.persistence.*;
-
 public class StepParameterRelation extends PanacheEntityBase {
     private final InputArgument to;
     private final OutputArgument from;
