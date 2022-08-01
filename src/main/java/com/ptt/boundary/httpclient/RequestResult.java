@@ -8,10 +8,12 @@ import java.io.InputStream;
 public class RequestResult {
     private final int statusCode;
     private final InputStream content;
+    private final long duration;
 
-    public RequestResult(int statusCode, InputStream content) {
+    public RequestResult(int statusCode, InputStream content, long duration) {
         this.statusCode = statusCode;
         this.content = content;
+        this.duration = duration;
     }
 
     public int getStatusCode() {
@@ -20,6 +22,10 @@ public class RequestResult {
 
     public InputStream getContent() {
         return content;
+    }
+
+    public long getDuration() {
+        return duration;
     }
 
     public String getContent(String jsonLocation) throws IOException {

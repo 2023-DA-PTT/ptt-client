@@ -16,8 +16,10 @@ public class HttpExecutor {
     }
 
     public RequestResult execute() throws IOException {
+        long startTime = System.nanoTime();
         HttpResponse response = httpClient.execute(request);
+        long endTime = System.nanoTime();
         return new RequestResult(response.getStatusLine().getStatusCode(),
-                response.getEntity().getContent());
+                response.getEntity().getContent(),endTime-startTime);
     }
 }

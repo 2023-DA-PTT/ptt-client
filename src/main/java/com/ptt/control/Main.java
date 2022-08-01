@@ -41,7 +41,7 @@ public class Main {
                         .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
                         .build();
                 RequestResult result = executor.execute();
-                
+                //TODO: send duration to backend
                 try {
                     for (NextStep nextStep : step.getNextSteps()) {
                         QueueElement newQueueElement = new QueueElement(nextStep.getNext());
