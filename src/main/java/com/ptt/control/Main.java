@@ -1,6 +1,7 @@
 package com.ptt.control;
 
 import com.ptt.boundary.httpclient.HttpExecutor;
+import com.ptt.boundary.httpclient.HttpExecutorBuilder;
 import com.ptt.boundary.httpclient.HttpHelper;
 import com.ptt.boundary.httpclient.RequestResult;
 import com.ptt.entities.*;
@@ -28,16 +29,19 @@ public class Main {
 
             Queue<QueueElement> stepQueue = new LinkedList<>();
             stepQueue.add(new QueueElement(plan.getStart()));
-    
+
             while (!stepQueue.isEmpty()) {
                 QueueElement queueElement = stepQueue.poll();
                 Step step = queueElement.getStep();
-    
-                RequestResult result = HttpExecutor
+
+                HttpExecutor executor = HttpExecutorBuilder
                         .create()
                         .setUrl(step.getUrl())
+                        .setMethod(step.getMethod())
                         .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
-                        .execute();
+                        .build();
+                RequestResult result = executor.execute();
+                
                 try {
                     for (NextStep nextStep : step.getNextSteps()) {
                         QueueElement newQueueElement = new QueueElement(nextStep.getNext());
