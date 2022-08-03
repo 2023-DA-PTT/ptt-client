@@ -8,12 +8,14 @@ import java.io.InputStream;
 public class RequestResult {
     private final int statusCode;
     private final InputStream content;
-    private final long duration;
+    private final long startTime;
+    private final long endTime;
 
-    public RequestResult(int statusCode, InputStream content, long duration) {
+    public RequestResult(int statusCode, InputStream content, long startTime, long endTime) {
         this.statusCode = statusCode;
         this.content = content;
-        this.duration = duration;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
     public int getStatusCode() {
@@ -24,8 +26,12 @@ public class RequestResult {
         return content;
     }
 
-    public long getDuration() {
-        return duration;
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
     }
 
     public String getContent(String jsonLocation) throws IOException {

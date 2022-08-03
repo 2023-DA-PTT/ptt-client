@@ -20,6 +20,6 @@ public class HttpExecutor {
         HttpResponse response = httpClient.execute(request);
         long endTime = System.nanoTime();
         return new RequestResult(response.getStatusLine().getStatusCode(),
-                response.getEntity().getContent(),endTime-startTime);
+                response.getEntity().getContent(), startTime, endTime);
     }
 }

@@ -5,6 +5,8 @@ import com.ptt.boundary.httpclient.HttpExecutorBuilder;
 import com.ptt.boundary.httpclient.HttpHelper;
 import com.ptt.boundary.httpclient.RequestResult;
 import com.ptt.entities.*;
+import com.ptt.entities.dto.DataPoint;
+
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -41,7 +43,11 @@ public class Main {
                         .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
                         .build();
                 RequestResult result = executor.execute();
-                //TODO: send duration to backend
+                DataPoint dataPoint = new DataPoint(plan.getId(),
+                        step.getId(),
+                        result.getStartTime(),
+                        result.getEndTime() - result.getStartTime());
+                // TODO: send duration to backend
                 try {
                     for (NextStep nextStep : step.getNextSteps()) {
                         QueueElement newQueueElement = new QueueElement(nextStep.getNext());
