@@ -1,5 +1,6 @@
 package com.ptt.control;
 
+import com.jayway.jsonpath.PathNotFoundException;
 import com.ptt.boundary.MqttSender;
 import com.ptt.boundary.httpclient.HttpExecutor;
 import com.ptt.boundary.httpclient.HttpExecutorBuilder;
@@ -9,6 +10,9 @@ import com.ptt.entities.*;
 import com.ptt.entities.dto.DataPointClientDto;
 
 import javax.inject.Inject;
+
+import org.jboss.logging.Logger;
+
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -23,6 +27,9 @@ public class Main {
     }
 
     public static class ClientApp implements QuarkusApplication {
+
+        private static final Logger LOG = Logger.getLogger(ClientApp.class);
+
         @Inject
         PlanService planService;
 
@@ -32,13 +39,14 @@ public class Main {
         @Override
         public int run(String... args) throws Exception {
             PlanRun planRun = planService.readPlanRun(1);
-
+            LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             Queue<QueueElement> stepQueue = new LinkedList<>();
             stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
             while (!stepQueue.isEmpty()) {
                 QueueElement queueElement = stepQueue.poll();
                 Step step = queueElement.getStep();
+                LOG.info(String.format("Entering Queue step: %s", step.toString()));
 
                 HttpExecutor executor = HttpExecutorBuilder
                         .create()
@@ -51,18 +59,25 @@ public class Main {
                         step.getId(),
                         result.getStartTime(),
                         result.getEndTime() - result.getStartTime());
+                        
+
+                LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
                 mqttSender.send(dataPoint);
+                LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
                 try {
                     for (NextStep nextStep : step.getNextSteps()) {
                         QueueElement newQueueElement = new QueueElement(nextStep.getNext());
                         for (StepParameterRelation param : nextStep.getParams()) {
+                            LOG.info(String.format("Reading json output of response. jsonLocation: %s", param.getFrom().getJsonLocation()));
                             newQueueElement.getParameters().put(param.getTo().getName(),
                                     result.getContent(param.getFrom().getJsonLocation()));
                         }
                         stepQueue.add(newQueueElement);
                     }
                 } catch (IOException e) {
-                    System.out.println("Could not read output parameter from response body!");
+                    LOG.warn(String.format("Could not read output parameter from response body!"),e);
+                } catch(PathNotFoundException pnfe) {
+                    LOG.warn(String.format("Response body doesn't include parameter"),pnfe);
                 }
             }
             Quarkus.waitForExit();

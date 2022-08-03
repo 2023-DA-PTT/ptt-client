@@ -45,4 +45,10 @@ public class DataPointClientDto {
     public void setDuration(long duration) {
         this.duration = duration;
     }
+
+    @Override
+    public String toString() {
+        return "DataPointClientDto [duration=" + duration + ", planRunId=" + planRunId + ", startTime=" + startTime
+                + ", stepId=" + stepId + "]";
+    }
 }

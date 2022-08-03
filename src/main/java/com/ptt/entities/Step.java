@@ -64,4 +64,9 @@ public class Step {
     public List<OutputArgument> getOutputArguments() {
         return outputArguments;
     }
+
+    @Override
+    public String toString() {
+        return "Step [id=" + id + ", name=" + name + ", url=" + url + "]";
+    }
 }
