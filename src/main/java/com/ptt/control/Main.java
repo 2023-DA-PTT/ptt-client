@@ -1,5 +1,6 @@
 package com.ptt.control;
 
+import com.ptt.boundary.MqttSender;
 import com.ptt.boundary.httpclient.HttpExecutor;
 import com.ptt.boundary.httpclient.HttpExecutorBuilder;
 import com.ptt.boundary.httpclient.HttpHelper;
@@ -25,6 +26,9 @@ public class Main {
         @Inject
         PlanService planService;
 
+        @Inject
+        MqttSender mqttSender;
+
         @Override
         public int run(String... args) throws Exception {
             Plan plan = planService.readPlan(1);
@@ -47,7 +51,7 @@ public class Main {
                         step.getId(),
                         result.getStartTime(),
                         result.getEndTime() - result.getStartTime());
-                // TODO: send duration to backend
+                mqttSender.send(dataPoint);
                 try {
                     for (NextStep nextStep : step.getNextSteps()) {
                         QueueElement newQueueElement = new QueueElement(nextStep.getNext());
