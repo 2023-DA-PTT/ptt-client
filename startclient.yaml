@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ptt-client-test
+  namespace: ptt
+spec:
+  containers:
+  - name: ptt-client-test
+    image: ghcr.io/2023-da-ptt/ptt-client:latest
+  imagePullSecrets:
+  - name: dockerconfigjson-github-com
