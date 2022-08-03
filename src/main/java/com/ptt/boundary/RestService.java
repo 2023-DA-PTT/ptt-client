@@ -30,4 +30,8 @@ public interface RestService {
     @Path("step/{stepId}/parameterRelation/from")
     List<StepParameterRelationDto> getStepParameterRelationByStepIdFrom(@PathParam("planId") long planId, @PathParam("stepId") long id);
 
+    @GET
+    @Path("planrun/{planrunid}")
+    PlanRunDto getPlanRunById(@PathParam("planrunid") long planId);
+
 }

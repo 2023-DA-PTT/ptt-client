@@ -6,7 +6,7 @@ import com.ptt.boundary.httpclient.HttpExecutorBuilder;
 import com.ptt.boundary.httpclient.HttpHelper;
 import com.ptt.boundary.httpclient.RequestResult;
 import com.ptt.entities.*;
-import com.ptt.entities.dto.DataPoint;
+import com.ptt.entities.dto.DataPointClientDto;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -31,10 +31,10 @@ public class Main {
 
         @Override
         public int run(String... args) throws Exception {
-            Plan plan = planService.readPlan(1);
+            PlanRun planRun = planService.readPlanRun(1);
 
             Queue<QueueElement> stepQueue = new LinkedList<>();
-            stepQueue.add(new QueueElement(plan.getStart()));
+            stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
             while (!stepQueue.isEmpty()) {
                 QueueElement queueElement = stepQueue.poll();
@@ -47,7 +47,7 @@ public class Main {
                         .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
                         .build();
                 RequestResult result = executor.execute();
-                DataPoint dataPoint = new DataPoint(plan.getId(),
+                DataPointClientDto dataPoint = new DataPointClientDto(planRun.getId(),
                         step.getId(),
                         result.getStartTime(),
                         result.getEndTime() - result.getStartTime());

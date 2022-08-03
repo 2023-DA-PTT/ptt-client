@@ -17,13 +17,21 @@ public class PlanService {
     @RestClient
     RestService service;
 
-    public Plan readPlan(long planId) {
-        PlanDto planDto = service.getPlanById(planId);
+    public PlanRun readPlanRun(long planRunId) {
+        PlanRunDto planRunDto = service.getPlanRunById(planRunId);
+        PlanDto planDto = service.getPlanById(planRunDto.getPlanId());
         Plan plan = new Plan(planDto.id, planDto.name, planDto.description);
+
+        PlanRun planRun = new PlanRun();
+        planRun.setId(planRunDto.getId());
+        planRun.setPlan(plan);
+        planRun.setStartTime(planRunDto.getStartTime());
+        planRun.setDuration(planRunDto.getDuration());
+
         Map<Long, InputArgument> inputMap = new HashMap<>();
         Map<Long, OutputArgument> outputMap = new HashMap<>();
 
-        List<StepDto> stepDtoList = service.getStepsByPlanId(planId);
+        List<StepDto> stepDtoList = service.getStepsByPlanId(planRunId);
         for (StepDto dto : stepDtoList) {
             Step step = new Step(dto.id, plan, dto.name, dto.description, dto.method, dto.url, dto.body);
             plan.getSteps().add(step);
@@ -64,6 +72,6 @@ public class PlanService {
             }
         }
 
-        return plan;
+        return planRun;
     }
 }

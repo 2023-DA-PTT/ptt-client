@@ -7,16 +7,16 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.ptt.entities.dto.DataPoint;
+import com.ptt.entities.dto.DataPointClientDto;
 
 @ApplicationScoped
 public class MqttSender {
     
     @Inject
     @Channel("measurements")
-    Emitter<DataPoint> emitter;
+    Emitter<DataPointClientDto> emitter;
 
-    public void send(DataPoint dataPoint) throws JsonProcessingException {
+    public void send(DataPointClientDto dataPoint) throws JsonProcessingException {
         //ObjectMapper objectMapper = new ObjectMapper();
         //return objectMapper.writeValueAsString(dataPoint);
         emitter.send(dataPoint);
