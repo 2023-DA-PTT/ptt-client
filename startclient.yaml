@@ -9,7 +9,7 @@ spec:
   - name: ptt-client-test
     env:
     - name: TEST_PLANRUN_ID
-      value: "5"
+      value: "1"
     image: ghcr.io/2023-da-ptt/ptt-client:latest
     #imagePullPolicy: IfNotPresent # remove for production
   imagePullSecrets: # only needed for production
