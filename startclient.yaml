@@ -7,7 +7,10 @@ spec:
   restartPolicy: Never
   containers:
   - name: ptt-client-test
+    env:
+    - name: TEST_PLANRUN_ID
+      value: "5"
     image: ghcr.io/2023-da-ptt/ptt-client:latest
-    imagePullPolicy: IfNotPresent # remove for production
-  #imagePullSecrets: # only needed for production
-  #- name: dockerconfigjson-github-com
+    #imagePullPolicy: IfNotPresent # remove for production
+  imagePullSecrets: # only needed for production
+  - name: dockerconfigjson-github-com

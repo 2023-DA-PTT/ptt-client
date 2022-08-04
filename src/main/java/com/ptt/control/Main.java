@@ -11,6 +11,7 @@ import com.ptt.entities.dto.DataPointClientDto;
 
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
@@ -36,9 +37,12 @@ public class Main {
         @Inject
         MqttSender mqttSender;
 
+        @ConfigProperty(name = "test.planrun.id")
+        long planRunId;
+
         @Override
         public int run(String... args) throws Exception {
-            PlanRun planRun = planService.readPlanRun(1);
+            PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             Queue<QueueElement> stepQueue = new LinkedList<>();
             stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
@@ -59,7 +63,6 @@ public class Main {
                         step.getId(),
                         result.getStartTime(),
                         result.getEndTime() - result.getStartTime());
-                        
 
                 LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
                 mqttSender.send(dataPoint);
@@ -68,16 +71,17 @@ public class Main {
                     for (NextStep nextStep : step.getNextSteps()) {
                         QueueElement newQueueElement = new QueueElement(nextStep.getNext());
                         for (StepParameterRelation param : nextStep.getParams()) {
-                            LOG.info(String.format("Reading json output of response. jsonLocation: %s", param.getFrom().getJsonLocation()));
+                            LOG.info(String.format("Reading json output of response. jsonLocation: %s",
+                                    param.getFrom().getJsonLocation()));
                             newQueueElement.getParameters().put(param.getTo().getName(),
                                     result.getContent(param.getFrom().getJsonLocation()));
                         }
                         stepQueue.add(newQueueElement);
                     }
                 } catch (IOException e) {
-                    LOG.warn(String.format("Could not read output parameter from response body!"),e);
-                } catch(PathNotFoundException pnfe) {
-                    LOG.warn(String.format("Response body doesn't include parameter"),pnfe);
+                    LOG.warn(String.format("Could not read output parameter from response body!"), e);
+                } catch (PathNotFoundException pnfe) {
+                    LOG.warn(String.format("Response body doesn't include parameter"), pnfe);
                 }
             }
             return 0;
