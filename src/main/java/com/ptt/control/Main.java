@@ -80,7 +80,6 @@ public class Main {
                     LOG.warn(String.format("Response body doesn't include parameter"),pnfe);
                 }
             }
-            Quarkus.waitForExit();
             return 0;
         }
     }
