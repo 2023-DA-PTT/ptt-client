@@ -10,7 +10,14 @@ spec:
     env:
     - name: TEST_PLANRUN_ID
       value: "1"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "500m"
+      limits:
+        memory: "512Mi"
+        cpu: "1000m"
     image: ghcr.io/2023-da-ptt/ptt-client:latest
-    #imagePullPolicy: IfNotPresent # remove for production
+    #imagePullPolicy: IfNotPresent # remove for production/ uncomment for development
   imagePullSecrets: # only needed for production
   - name: dockerconfigjson-github-com
