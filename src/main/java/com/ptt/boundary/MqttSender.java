@@ -1,5 +1,7 @@
 package com.ptt.boundary;
 
+import java.util.concurrent.CompletionStage;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -11,7 +13,7 @@ import com.ptt.entities.dto.DataPointClientDto;
 
 @ApplicationScoped
 public class MqttSender {
-    
+
     @Inject
     @Channel("measurements")
     Emitter<DataPointClientDto> emitter;
@@ -19,6 +21,7 @@ public class MqttSender {
     public void send(DataPointClientDto dataPoint) throws JsonProcessingException {
         //ObjectMapper objectMapper = new ObjectMapper();
         //return objectMapper.writeValueAsString(dataPoint);
-        emitter.send(dataPoint);
+        CompletionStage<Void> cs =  emitter.send(dataPoint);
+        cs.toCompletableFuture().join();
     }
 }
