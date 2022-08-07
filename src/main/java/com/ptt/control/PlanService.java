@@ -31,7 +31,7 @@ public class PlanService {
         Map<Long, InputArgument> inputMap = new HashMap<>();
         Map<Long, OutputArgument> outputMap = new HashMap<>();
 
-        List<StepDto> stepDtoList = service.getStepsByPlanId(planRunId);
+        List<StepDto> stepDtoList = service.getStepsByPlanId(plan.getId());
         for (StepDto dto : stepDtoList) {
             Step step = new Step(dto.id, plan, dto.name, dto.description, dto.method, dto.url, dto.body);
             plan.getSteps().add(step);
