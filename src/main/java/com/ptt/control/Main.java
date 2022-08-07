@@ -37,7 +37,7 @@ public class Main {
         @Inject
         MqttSender mqttSender;
 
-        @ConfigProperty(name = "test.planrun.id")
+        @ConfigProperty(name = "test.plan-run.id")
         long planRunId;
 
         @Override
