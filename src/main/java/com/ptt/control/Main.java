@@ -46,7 +46,7 @@ public class Main {
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             long endTime = planRun.getStartTime() + planRun.getDuration();
-            while(endTime <= Instant.now().toEpochMilli()) {
+            while(endTime >= Instant.now().toEpochMilli()) {
                 Queue<QueueElement> stepQueue = new LinkedList<>();
                 stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
@@ -70,7 +70,7 @@ public class Main {
                     LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
                     mqttSender.send(dataPoint);
                     LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
-                    if(endTime > Instant.now().toEpochMilli()) {
+                    if(endTime < Instant.now().toEpochMilli()) {
                         break;
                     }
                     try {
