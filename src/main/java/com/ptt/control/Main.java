@@ -46,7 +46,7 @@ public class Main {
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             long endTime = planRun.getStartTime() + planRun.getDuration();
-            while(endTime >= Instant.now().toEpochMilli()) {
+            while(endTime >= Instant.now().getEpochSecond()) {
                 Queue<QueueElement> stepQueue = new LinkedList<>();
                 stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
