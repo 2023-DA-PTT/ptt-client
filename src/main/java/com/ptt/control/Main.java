@@ -54,7 +54,7 @@ public class Main {
 
                 HttpExecutor executor = HttpExecutorBuilder
                         .create()
-                        .setUrl(step.getUrl())
+                        .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), queueElement.getParameters()))
                         .setMethod(step.getMethod())
                         .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
                         .build();

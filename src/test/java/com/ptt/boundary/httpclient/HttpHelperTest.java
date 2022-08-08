@@ -128,4 +128,37 @@ class HttpHelperTest {
                 result
         );
     }
+
+    @Test
+    void parseRequestUrlWorking() {
+        String result = HttpHelper.parseRequestUrl("https://localhost:8080/param/{param1}/hello",
+            Map.of("param1", "result2"));
+        assertEquals("https://localhost:8080/param/result2/hello", result);
+    }
+
+    @Test
+    void parseRequestUrlWithWhitespaces() {
+        String result = HttpHelper.parseRequestUrl("https://localhost:8080/param/{   param1    }/hello",
+            Map.of("param1", "result2"));
+        assertEquals("https://localhost:8080/param/result2/hello", result);
+    }
+
+    @Test
+    void parseRequestUrlMultipleParameters() {
+        String result = HttpHelper.parseRequestUrl(
+                "https://localhost:8080/param/{param1}/{parm2}/{pa$am3}/{param4}", Map.of(
+                        "param1", "result1",
+                        "parm2", "result2",
+                        "pa$am3", "result3",
+                        "param4", "result4"));
+        assertEquals("https://localhost:8080/param/result1/result2/result3/result4", result);
+    }
+
+    @Test
+    void parseRequestUrlOnlyParameter() {
+        String result = HttpHelper.parseRequestUrl(
+                "{ parameter }", Map.of(
+                        "parameter", "test"));
+        assertEquals("test", result);
+    }
 }

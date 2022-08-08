@@ -43,4 +43,29 @@ public class HttpHelper {
 
         return stringBuilder.toString();
     }
+
+    public static String parseRequestUrl(String urlTemplate, Map<String, String> params) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        boolean inVarName = false;
+        StringBuilder varName = new StringBuilder();
+        for(char c : urlTemplate.toCharArray()) {
+            if(inVarName && c == '}') {
+                inVarName = false;
+                String param = params.get(StringUtils.deleteWhitespace(varName.toString()));
+                if (param == null) {
+                    throw new IllegalArgumentException("the param map didn't include needed parameter");
+                }
+                stringBuilder.append(param);
+                varName.setLength(0); // clears the builder
+            } else if(inVarName) {
+                varName.append(c);
+            } else if(c == '{') {
+                inVarName = true;
+            }else {
+                stringBuilder.append(c);
+            }
+        }
+        return stringBuilder.toString();
+    }
 }
