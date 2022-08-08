@@ -15,6 +15,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.Queue;
 import io.quarkus.runtime.Quarkus;
@@ -44,44 +45,50 @@ public class Main {
         public int run(String... args) throws Exception {
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
-            Queue<QueueElement> stepQueue = new LinkedList<>();
-            stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
+            long endTime = planRun.getStartTime() + planRun.getDuration();
+            while(endTime < Instant.now().toEpochMilli()) {
+                Queue<QueueElement> stepQueue = new LinkedList<>();
+                stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
-            while (!stepQueue.isEmpty()) {
-                QueueElement queueElement = stepQueue.poll();
-                Step step = queueElement.getStep();
-                LOG.info(String.format("Entering Queue step: %s", step.toString()));
+                while (!stepQueue.isEmpty()) {
+                    QueueElement queueElement = stepQueue.poll();
+                    Step step = queueElement.getStep();
+                    LOG.info(String.format("Entering Queue step: %s", step.toString()));
 
-                HttpExecutor executor = HttpExecutorBuilder
-                        .create()
-                        .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), queueElement.getParameters()))
-                        .setMethod(step.getMethod())
-                        .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
-                        .build();
-                RequestResult result = executor.execute();
-                DataPointClientDto dataPoint = new DataPointClientDto(planRun.getId(),
-                        step.getId(),
-                        result.getStartTime(),
-                        result.getDuration());
+                    HttpExecutor executor = HttpExecutorBuilder
+                            .create()
+                            .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), queueElement.getParameters()))
+                            .setMethod(step.getMethod())
+                            .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
+                            .build();
+                    RequestResult result = executor.execute();
+                    DataPointClientDto dataPoint = new DataPointClientDto(planRun.getId(),
+                            step.getId(),
+                            result.getStartTime(),
+                            result.getDuration());
 
-                LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
-                mqttSender.send(dataPoint);
-                LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
-                try {
-                    for (NextStep nextStep : step.getNextSteps()) {
-                        QueueElement newQueueElement = new QueueElement(nextStep.getNext());
-                        for (StepParameterRelation param : nextStep.getParams()) {
-                            LOG.info(String.format("Reading json output of response. jsonLocation: %s",
-                                    param.getFrom().getJsonLocation()));
-                            newQueueElement.getParameters().put(param.getTo().getName(),
-                                    result.getContent(param.getFrom().getJsonLocation()));
-                        }
-                        stepQueue.add(newQueueElement);
+                    LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
+                    mqttSender.send(dataPoint);
+                    LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
+                    if(endTime < Instant.now().toEpochMilli()) {
+                        break;
                     }
-                } catch (IOException e) {
-                    LOG.warn(String.format("Could not read output parameter from response body!"), e);
-                } catch (PathNotFoundException pnfe) {
-                    LOG.warn(String.format("Response body doesn't include parameter"), pnfe);
+                    try {
+                        for (NextStep nextStep : step.getNextSteps()) {
+                            QueueElement newQueueElement = new QueueElement(nextStep.getNext());
+                            for (StepParameterRelation param : nextStep.getParams()) {
+                                LOG.info(String.format("Reading json output of response. jsonLocation: %s",
+                                        param.getFrom().getJsonLocation()));
+                                newQueueElement.getParameters().put(param.getTo().getName(),
+                                        result.getContent(param.getFrom().getJsonLocation()));
+                            }
+                            stepQueue.add(newQueueElement);
+                        }
+                    } catch (IOException e) {
+                        LOG.warn(String.format("Could not read output parameter from response body!"), e);
+                    } catch (PathNotFoundException pnfe) {
+                        LOG.warn(String.format("Response body doesn't include parameter"), pnfe);
+                    }
                 }
             }
             return 0;
