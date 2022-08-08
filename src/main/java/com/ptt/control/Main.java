@@ -70,7 +70,7 @@ public class Main {
                     LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
                     mqttSender.send(dataPoint);
                     LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
-                    if(endTime < Instant.now().toEpochMilli()) {
+                    if(endTime < Instant.now().getEpochSecond()) {
                         break;
                     }
                     try {
