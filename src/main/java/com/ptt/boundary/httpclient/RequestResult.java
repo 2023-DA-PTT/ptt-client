@@ -15,9 +15,9 @@ public class RequestResult {
     private final InputStream content;
     private final String contentStr;
     private final long startTime;
-    private final long endTime;
+    private final long duration;
 
-    public RequestResult(int statusCode, InputStream content, long startTime, long endTime) throws IOException {
+    public RequestResult(int statusCode, InputStream content, long startTime, long duration) throws IOException {
         this.statusCode = statusCode;
         this.content = content;
         StringBuilder textBuilder = new StringBuilder();
@@ -30,7 +30,7 @@ public class RequestResult {
         }
         contentStr = textBuilder.toString();
         this.startTime = startTime;
-        this.endTime = endTime;
+        this.duration = duration;
     }
 
     public int getStatusCode() {
@@ -45,8 +45,8 @@ public class RequestResult {
         return startTime;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public long getDuration() {
+        return duration;
     }
 
     public String getContent(String jsonLocation) throws IOException {
@@ -57,7 +57,7 @@ public class RequestResult {
 
     @Override
     public String toString() {
-        return "RequestResult [endTime=" + endTime + ", startTime=" + startTime + ", statusCode=" + statusCode + "]";
+        return "RequestResult [duration=" + duration + ", startTime=" + startTime + ", statusCode=" + statusCode + "]";
     }
 
 

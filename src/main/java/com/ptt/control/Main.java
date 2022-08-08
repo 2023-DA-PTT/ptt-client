@@ -62,7 +62,7 @@ public class Main {
                 DataPointClientDto dataPoint = new DataPointClientDto(planRun.getId(),
                         step.getId(),
                         result.getStartTime(),
-                        result.getEndTime() - result.getStartTime());
+                        result.getDuration());
 
                 LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
                 mqttSender.send(dataPoint);
