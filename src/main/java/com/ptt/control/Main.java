@@ -2,12 +2,12 @@ package com.ptt.control;
 
 import com.jayway.jsonpath.PathNotFoundException;
 import com.ptt.boundary.MqttSender;
-import com.ptt.boundary.httpclient.HttpExecutor;
-import com.ptt.boundary.httpclient.HttpExecutorBuilder;
-import com.ptt.boundary.httpclient.HttpHelper;
-import com.ptt.boundary.httpclient.RequestResult;
 import com.ptt.entities.*;
 import com.ptt.entities.dto.DataPointClientDto;
+import com.ptt.httpclient.boundary.HttpExecutor;
+import com.ptt.httpclient.control.HttpExecutorBuilder;
+import com.ptt.httpclient.control.HttpHelper;
+import com.ptt.httpclient.entity.RequestResult;
 
 import javax.inject.Inject;
 
@@ -17,6 +17,7 @@ import org.jboss.logging.Logger;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
@@ -41,6 +42,34 @@ public class Main {
         @ConfigProperty(name = "test.plan-run.id")
         long planRunId;
 
+        private interface ExecutedStep {
+            String getParameter(OutputArgument argument) throws IOException;
+        }
+
+        private ExecutedStep executeNormalStep(Step step, Map<String,String> params) throws IOException {
+            HttpExecutor executor = HttpExecutorBuilder
+            .create()
+            .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
+            .setMethod(step.getMethod())
+            .setBody(HttpHelper.parseRequestBody(step.getBody(), params))
+            .build();
+            RequestResult result = executor.execute();
+            DataPointClientDto dataPoint = new DataPointClientDto(planRunId,
+                    step.getId(),
+                    result.getStartTime(),
+                    result.getDuration());
+
+            LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
+            mqttSender.send(dataPoint);
+            LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
+            return new ExecutedStep() {
+                @Override
+                public String getParameter(OutputArgument argument) throws IOException {
+                    return result.getContent(argument.getJsonLocation());
+                }
+            };
+        }
+
         @Override
         public int run(String... args) throws Exception {
             PlanRun planRun = planService.readPlanRun(planRunId);
@@ -54,22 +83,8 @@ public class Main {
                     QueueElement queueElement = stepQueue.poll();
                     Step step = queueElement.getStep();
                     LOG.info(String.format("Entering Queue step: %s", step.toString()));
+                    ExecutedStep execStep = executeNormalStep(step, queueElement.getParameters());
 
-                    HttpExecutor executor = HttpExecutorBuilder
-                            .create()
-                            .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), queueElement.getParameters()))
-                            .setMethod(step.getMethod())
-                            .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
-                            .build();
-                    RequestResult result = executor.execute();
-                    DataPointClientDto dataPoint = new DataPointClientDto(planRun.getId(),
-                            step.getId(),
-                            result.getStartTime(),
-                            result.getDuration());
-
-                    LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
-                    mqttSender.send(dataPoint);
-                    LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
                     if(endTime < Instant.now().getEpochSecond()) {
                         break;
                     }
@@ -77,10 +92,8 @@ public class Main {
                         for (NextStep nextStep : step.getNextSteps()) {
                             QueueElement newQueueElement = new QueueElement(nextStep.getNext());
                             for (StepParameterRelation param : nextStep.getParams()) {
-                                LOG.info(String.format("Reading json output of response. jsonLocation: %s",
-                                        param.getFrom().getJsonLocation()));
-                                newQueueElement.getParameters().put(param.getTo().getName(),
-                                        result.getContent(param.getFrom().getJsonLocation()));
+                                String parameterContent = execStep.getParameter(param.getFrom());
+                                newQueueElement.getParameters().put(param.getTo().getName(), parameterContent);
                             }
                             stepQueue.add(newQueueElement);
                         }

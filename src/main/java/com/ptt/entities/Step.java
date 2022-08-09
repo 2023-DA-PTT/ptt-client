@@ -65,6 +65,15 @@ public class Step {
         return outputArguments;
     }
 
+    public OutputArgument getOutputArgumentByName(String name) {
+        for(OutputArgument arg : outputArguments) {
+            if(arg.getName().equals(name)) {
+                return arg;
+            }
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         return "Step [id=" + id + ", name=" + name + ", url=" + url + "]";
