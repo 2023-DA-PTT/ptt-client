@@ -59,7 +59,7 @@ public class Main {
             return new ExecutedStep() {
                 @Override
                 public String getParameter(OutputArgument argument) throws IOException {
-                    return "";
+                    return "{\"username\": \"user\", \"password\": \"pw\"}";
                 }
             };
         }
@@ -83,7 +83,7 @@ public class Main {
             return new ExecutedStep() {
                 @Override
                 public String getParameter(OutputArgument argument) throws IOException {
-                    return result.getContent(argument.getJsonLocation());
+                    return result.getContent(argument.getParameterLocation());
                 }
             };
         }

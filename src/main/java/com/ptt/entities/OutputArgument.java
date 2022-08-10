@@ -4,13 +4,13 @@ public class OutputArgument {
     private final Long id;
     private final Step step;
     private final String name;
-    private final String jsonLocation;
+    private final String parameterLocation;
 
-    public OutputArgument(Long id, Step step, String name, String jsonLocation) {
+    public OutputArgument(Long id, Step step, String name, String parameterLocation) {
         this.id = id;
         this.step = step;
         this.name = name;
-        this.jsonLocation = jsonLocation;
+        this.parameterLocation = parameterLocation;
     }
 
     public Long getId() {
@@ -25,7 +25,7 @@ public class OutputArgument {
         return name;
     }
 
-    public String getJsonLocation() {
-        return jsonLocation;
+    public String getParameterLocation() {
+        return parameterLocation;
     }
 }
