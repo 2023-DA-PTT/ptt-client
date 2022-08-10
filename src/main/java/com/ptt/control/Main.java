@@ -2,13 +2,12 @@ package com.ptt.control;
 
 import com.jayway.jsonpath.PathNotFoundException;
 import com.ptt.boundary.MqttSender;
-import com.ptt.boundary.httpclient.HttpExecutor;
-import com.ptt.boundary.httpclient.HttpExecutorBuilder;
-import com.ptt.boundary.httpclient.HttpHelper;
-import com.ptt.boundary.httpclient.RequestResult;
 import com.ptt.entities.*;
 import com.ptt.entities.dto.DataPointClientDto;
-
+import com.ptt.httpclient.boundary.HttpExecutor;
+import com.ptt.httpclient.control.HttpExecutorBuilder;
+import com.ptt.httpclient.control.HttpHelper;
+import com.ptt.httpclient.entity.RequestResult;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -17,10 +16,13 @@ import org.jboss.logging.Logger;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
+
+import org.graalvm.polyglot.*;
 
 @QuarkusMain
 public class Main {
@@ -41,12 +43,57 @@ public class Main {
         @ConfigProperty(name = "test.plan-run.id")
         long planRunId;
 
+        private interface ExecutedStep {
+            String getParameter(OutputArgument argument) throws IOException;
+        }
+
+        private ExecutedStep executeStep(Step step, Map<String, String> params) throws IOException {
+            if (step instanceof HttpStep) {
+                return executeHttpStep((HttpStep) step, params);
+            } else if (step instanceof ScriptStep) {
+                return executeScriptStep((ScriptStep) step, params);
+            }
+            throw new IllegalStateException("Step is of unknown Step! step: " + step.toString());
+        }
+
+        private ExecutedStep executeScriptStep(ScriptStep step, Map<String, String> params) throws IOException {
+            String scr = "(function(params) {"
+                    + step.getScript()
+                    + "})";
+            Context context = Context.newBuilder("js")
+                    .allowHostAccess(HostAccess.ALL)
+                    .allowHostClassLookup(className -> true)
+                    .build();
+            Value func = context.eval("js", scr);
+            Value result = func.execute(params);
+            return (OutputArgument argument) -> result.getMember(argument.getParameterLocation()).asString();
+        }
+
+        private ExecutedStep executeHttpStep(HttpStep step, Map<String, String> params) throws IOException {
+            HttpExecutor executor = HttpExecutorBuilder
+                    .create()
+                    .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
+                    .setMethod(step.getMethod())
+                    .setBody(HttpHelper.parseRequestBody(step.getBody(), params))
+                    .build();
+            RequestResult result = executor.execute();
+            DataPointClientDto dataPoint = new DataPointClientDto(planRunId,
+                    step.getId(),
+                    result.getStartTime(),
+                    result.getDuration());
+
+            LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
+            mqttSender.send(dataPoint);
+            LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
+            return (OutputArgument argument) -> result.getContent(argument.getParameterLocation());
+        }
+
         @Override
         public int run(String... args) throws Exception {
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             long endTime = planRun.getStartTime() + planRun.getDuration();
-            while(endTime >= Instant.now().getEpochSecond()) {
+            while (endTime >= Instant.now().getEpochSecond()) {
                 Queue<QueueElement> stepQueue = new LinkedList<>();
                 stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
@@ -54,33 +101,17 @@ public class Main {
                     QueueElement queueElement = stepQueue.poll();
                     Step step = queueElement.getStep();
                     LOG.info(String.format("Entering Queue step: %s", step.toString()));
+                    ExecutedStep execStep = executeStep(step, queueElement.getParameters());
 
-                    HttpExecutor executor = HttpExecutorBuilder
-                            .create()
-                            .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), queueElement.getParameters()))
-                            .setMethod(step.getMethod())
-                            .setBody(HttpHelper.parseRequestBody(step.getBody(), queueElement.getParameters()))
-                            .build();
-                    RequestResult result = executor.execute();
-                    DataPointClientDto dataPoint = new DataPointClientDto(planRun.getId(),
-                            step.getId(),
-                            result.getStartTime(),
-                            result.getDuration());
-
-                    LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
-                    mqttSender.send(dataPoint);
-                    LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
-                    if(endTime < Instant.now().getEpochSecond()) {
+                    if (endTime < Instant.now().getEpochSecond()) {
                         break;
                     }
                     try {
                         for (NextStep nextStep : step.getNextSteps()) {
                             QueueElement newQueueElement = new QueueElement(nextStep.getNext());
                             for (StepParameterRelation param : nextStep.getParams()) {
-                                LOG.info(String.format("Reading json output of response. jsonLocation: %s",
-                                        param.getFrom().getJsonLocation()));
-                                newQueueElement.getParameters().put(param.getTo().getName(),
-                                        result.getContent(param.getFrom().getJsonLocation()));
+                                String parameterContent = execStep.getParameter(param.getFrom());
+                                newQueueElement.getParameters().put(param.getTo().getName(), parameterContent);
                             }
                             stepQueue.add(newQueueElement);
                         }

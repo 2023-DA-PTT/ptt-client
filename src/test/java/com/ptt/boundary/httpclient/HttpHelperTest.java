@@ -2,6 +2,8 @@ package com.ptt.boundary.httpclient;
 
 import org.junit.jupiter.api.Test;
 
+import com.ptt.httpclient.control.HttpHelper;
+
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;

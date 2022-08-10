@@ -1,4 +1,4 @@
-package com.ptt.boundary.httpclient;
+package com.ptt.httpclient.control;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
@@ -10,6 +10,8 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
+
+import com.ptt.httpclient.boundary.HttpExecutor;
 
 public class HttpExecutorBuilder {
     private String url;

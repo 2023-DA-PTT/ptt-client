@@ -9,20 +9,14 @@ public class Step {
     private final List<NextStep> nextSteps = new ArrayList<>();
     private final String name;
     private final String description;
-    private final String method;
-    private final String url;
-    private final String body;
     private final List<InputArgument> inputArguments = new ArrayList<>();
     private final List<OutputArgument> outputArguments = new ArrayList<>();
 
-    public Step(Long id, Plan plan, String name, String description, String method, String url, String body) {
+    public Step(Long id, Plan plan, String name, String description) {
         this.id = id;
         this.plan = plan;
         this.name = name;
         this.description = description;
-        this.method = method;
-        this.url = url;
-        this.body = body;
     }
 
     public Long getId() {
@@ -45,18 +39,6 @@ public class Step {
         return description;
     }
 
-    public String getMethod() {
-        return method;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public String getBody() {
-        return body;
-    }
-
     public List<InputArgument> getInputArguments() {
         return inputArguments;
     }
@@ -65,8 +47,17 @@ public class Step {
         return outputArguments;
     }
 
+    public OutputArgument getOutputArgumentByName(String name) {
+        for(OutputArgument arg : outputArguments) {
+            if(arg.getName().equals(name)) {
+                return arg;
+            }
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
-        return "Step [id=" + id + ", name=" + name + ", url=" + url + "]";
+        return "Step [description=" + description + ", id=" + id + ", name=" + name + ", plan=" + plan + "]";
     }
 }
