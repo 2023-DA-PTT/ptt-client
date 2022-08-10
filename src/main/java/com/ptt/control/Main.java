@@ -46,13 +46,31 @@ public class Main {
             String getParameter(OutputArgument argument) throws IOException;
         }
 
-        private ExecutedStep executeNormalStep(Step step, Map<String,String> params) throws IOException {
+        private ExecutedStep executeStep(Step step, Map<String, String> params) throws IOException {
+            if (step instanceof HttpStep) {
+                return executeHttpStep((HttpStep) step, params);
+            } else if (step instanceof ScriptStep) {
+                return executeScriptStep((ScriptStep) step, params);
+            }
+            throw new IllegalStateException("Step is of unknown Step! step: " + step.toString());
+        }
+
+        private ExecutedStep executeScriptStep(ScriptStep step, Map<String, String> params) throws IOException {
+            return new ExecutedStep() {
+                @Override
+                public String getParameter(OutputArgument argument) throws IOException {
+                    return "";
+                }
+            };
+        }
+
+        private ExecutedStep executeHttpStep(HttpStep step, Map<String, String> params) throws IOException {
             HttpExecutor executor = HttpExecutorBuilder
-            .create()
-            .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
-            .setMethod(step.getMethod())
-            .setBody(HttpHelper.parseRequestBody(step.getBody(), params))
-            .build();
+                    .create()
+                    .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
+                    .setMethod(step.getMethod())
+                    .setBody(HttpHelper.parseRequestBody(step.getBody(), params))
+                    .build();
             RequestResult result = executor.execute();
             DataPointClientDto dataPoint = new DataPointClientDto(planRunId,
                     step.getId(),
@@ -75,7 +93,7 @@ public class Main {
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             long endTime = planRun.getStartTime() + planRun.getDuration();
-            while(endTime >= Instant.now().getEpochSecond()) {
+            while (endTime >= Instant.now().getEpochSecond()) {
                 Queue<QueueElement> stepQueue = new LinkedList<>();
                 stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
@@ -83,9 +101,9 @@ public class Main {
                     QueueElement queueElement = stepQueue.poll();
                     Step step = queueElement.getStep();
                     LOG.info(String.format("Entering Queue step: %s", step.toString()));
-                    ExecutedStep execStep = executeNormalStep(step, queueElement.getParameters());
+                    ExecutedStep execStep = executeStep(step, queueElement.getParameters());
 
-                    if(endTime < Instant.now().getEpochSecond()) {
+                    if (endTime < Instant.now().getEpochSecond()) {
                         break;
                     }
                     try {

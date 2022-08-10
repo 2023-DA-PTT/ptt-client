@@ -31,18 +31,28 @@ public class PlanService {
         Map<Long, InputArgument> inputMap = new HashMap<>();
         Map<Long, OutputArgument> outputMap = new HashMap<>();
 
-        List<StepDto> stepDtoList = service.getStepsByPlanId(plan.getId());
-        for (StepDto dto : stepDtoList) {
-            Step step = new Step(dto.id, plan, dto.name, dto.description, dto.method, dto.url, dto.body);
+        List<HttpStepDto> httpStepDtoList = service.getHttpStepsByPlanId(plan.getId());
+        for (HttpStepDto dto : httpStepDtoList) {
+            HttpStep step = new HttpStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getMethod(), dto.getUrl(), dto.getBody(), dto.getResponseContentType());
             plan.getSteps().add(step);
             if (step.getId() == planDto.startId) {
                 plan.setStart(step);
             }
         }
+
+        List<ScriptStepDto> scriptStepDtoList = service.getScriptStepsByPlanId(plan.getId());
+        for (ScriptStepDto dto : scriptStepDtoList) {
+            ScriptStep step = new ScriptStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getScript());
+            plan.getSteps().add(step);
+            if (step.getId() == planDto.startId) {
+                plan.setStart(step);
+            }
+        }
+
         for (Step step : plan.getSteps()) {
             List<OutputArgumentDto> outArgsDtoList = service.getOutputArgumentsByStepId(plan.getId(), step.getId());
             for (OutputArgumentDto outArgDto : outArgsDtoList) {
-                OutputArgument outArg = new OutputArgument(outArgDto.id, step, outArgDto.name, outArgDto.jsonLocation);
+                OutputArgument outArg = new OutputArgument(outArgDto.id, step, outArgDto.name, outArgDto.parameterLocation);
                 outputMap.put(outArg.getId(), outArg);
                 step.getOutputArguments().add(outArg);
             }

@@ -4,12 +4,12 @@ public class OutputArgumentDto {
     public long id;
     public long stepId;
     public String name;
-    public String jsonLocation;
+    public String parameterLocation;
 
-    public OutputArgumentDto(long id,long stepId, String name, String jsonLocation) {
+    public OutputArgumentDto(long id,long stepId, String name, String parameterLocation) {
         this.id = id;
         this.stepId = stepId;
         this.name = name;
-        this.jsonLocation = jsonLocation;
+        this.parameterLocation = parameterLocation;
     }
 }
