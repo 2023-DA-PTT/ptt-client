@@ -8,7 +8,6 @@ import com.ptt.httpclient.boundary.HttpExecutor;
 import com.ptt.httpclient.control.HttpExecutorBuilder;
 import com.ptt.httpclient.control.HttpHelper;
 import com.ptt.httpclient.entity.RequestResult;
-
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -22,6 +21,8 @@ import java.util.Queue;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
+
+import org.graalvm.polyglot.*;
 
 @QuarkusMain
 public class Main {
@@ -56,12 +57,16 @@ public class Main {
         }
 
         private ExecutedStep executeScriptStep(ScriptStep step, Map<String, String> params) throws IOException {
-            return new ExecutedStep() {
-                @Override
-                public String getParameter(OutputArgument argument) throws IOException {
-                    return "{\"username\": \"user\", \"password\": \"pw\"}";
-                }
-            };
+            String scr = "(function(params) {"
+                    + step.getScript()
+                    + "})";
+            Context context = Context.newBuilder("js")
+                    .allowHostAccess(HostAccess.ALL)
+                    .allowHostClassLookup(className -> true)
+                    .build();
+            Value func = context.eval("js", scr);
+            Value result = func.execute(params);
+            return (OutputArgument argument) -> result.getMember(argument.getParameterLocation()).asString();
         }
 
         private ExecutedStep executeHttpStep(HttpStep step, Map<String, String> params) throws IOException {
@@ -80,12 +85,7 @@ public class Main {
             LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
             mqttSender.send(dataPoint);
             LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
-            return new ExecutedStep() {
-                @Override
-                public String getParameter(OutputArgument argument) throws IOException {
-                    return result.getContent(argument.getParameterLocation());
-                }
-            };
+            return (OutputArgument argument) -> result.getContent(argument.getParameterLocation());
         }
 
         @Override
