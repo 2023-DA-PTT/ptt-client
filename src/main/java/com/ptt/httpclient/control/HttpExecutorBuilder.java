@@ -1,26 +1,29 @@
 package com.ptt.httpclient.control;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClientBuilder;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.hc.client5.http.classic.methods.*;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+
+import com.ptt.entities.ParameterValue;
 import com.ptt.httpclient.boundary.HttpExecutor;
 
 public class HttpExecutorBuilder {
     private String url;
     private String body;
     private String method;
-    private final HttpClient httpClient;
+    private String contentType;
+    private final CloseableHttpClient httpClient;
+    private final Map<String, ParameterValue> multipartValues;
 
     private HttpExecutorBuilder() {
-        httpClient = HttpClientBuilder.create().build();
+        multipartValues = new HashMap<>();
+        httpClient = HttpClients.createDefault();
     }
 
     public static HttpExecutorBuilder create() {
@@ -42,6 +45,16 @@ public class HttpExecutorBuilder {
         return this;
     }
 
+    public HttpExecutorBuilder setContentType(String contentType) {
+        this.contentType = contentType;
+        return this;
+    }
+
+    public HttpExecutorBuilder addMultipartParameter(String name, ParameterValue value) {
+        multipartValues.put(name, value);
+        return this;
+    }
+
     public HttpExecutor build() {
         switch (method) {
             case "DELETE":
@@ -59,10 +72,33 @@ public class HttpExecutorBuilder {
         }
     }
 
-    private HttpExecutor buildWithEntityEnclosing(HttpEntityEnclosingRequestBase request) {
-        StringEntity params = new StringEntity(body, ContentType.APPLICATION_JSON);
-        request.addHeader("content-type", "application/json");
-        request.setEntity(params);
+    private HttpExecutor buildWithEntityEnclosing(HttpUriRequestBase request) {
+        request.addHeader("content-type", contentType);
+        switch (contentType) {
+            case "multipart/form-data":
+                MultipartEntityBuilder meb = MultipartEntityBuilder.create();
+                for (String key: multipartValues.keySet()) {
+                    ParameterValue pv = multipartValues.get(key);
+                    switch (pv.getType()) {
+                        case PLAIN_TEXT:
+                            meb.addTextBody(key, pv.getValue(), ContentType.APPLICATION_OCTET_STREAM);
+                            break;
+                            case OCTET_STREAM:
+                            meb.addTextBody(key, pv.getValue(), ContentType.APPLICATION_OCTET_STREAM);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                request.setEntity(meb.build());
+                break;
+            case "application/json":
+                StringEntity params = new StringEntity(body, ContentType.APPLICATION_JSON);
+                request.setEntity(params);
+                break;
+            default:
+                return null;
+        }
         return new HttpExecutor(httpClient, request);
     }
 }

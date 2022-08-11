@@ -2,6 +2,8 @@ package com.ptt.boundary.httpclient;
 
 import org.junit.jupiter.api.Test;
 
+import com.ptt.entities.OutputType;
+import com.ptt.entities.ParameterValue;
 import com.ptt.httpclient.control.HttpHelper;
 
 import java.util.Map;
@@ -17,7 +19,7 @@ class HttpHelperTest {
                         {
                             name: '{{param1}}'
                         }
-                        """, Map.of("param1", "result2")
+                        """, Map.of("param1", new ParameterValue("result2", OutputType.PLAIN_TEXT))
         );
         assertEquals(
                 """
@@ -36,7 +38,7 @@ class HttpHelperTest {
                         {
                             name: '{{  param1       }}'
                         }
-                        """, Map.of("param1", "result2")
+                        """, Map.of("param1", new ParameterValue("result2", OutputType.PLAIN_TEXT))
         );
         assertEquals(
                 """
@@ -63,14 +65,14 @@ class HttpHelperTest {
                             }
                         }
                         """, Map.of(
-                                "personName", "Herbert",
-                                "streetName", "HerbertStreet",
-                                "streetNumber", "15",
-                                "customObj", """
+                                "personName", new ParameterValue("Herbert", OutputType.PLAIN_TEXT),
+                                "streetName", new ParameterValue("HerbertStreet", OutputType.PLAIN_TEXT),
+                                "streetNumber", new ParameterValue("15", OutputType.PLAIN_TEXT),
+                                "customObj", new ParameterValue("""
                                 {
                                             customTag: "HELLO",
                                             customNumber: 187
-                                        }""")
+                                        }""", OutputType.PLAIN_TEXT))
         );
         assertEquals(
                 """
@@ -103,10 +105,10 @@ class HttpHelperTest {
                             franz: '{{pa{}{m4}}',
                         }
                         """, Map.of(
-                        "param1", "result1",
-                        "par}m2", "result2",
-                        "pa$am3", "result3",
-                        "pa{}{m4", "result4"));
+                        "param1", new ParameterValue("result1", OutputType.PLAIN_TEXT),
+                        "par}m2", new ParameterValue("result2", OutputType.PLAIN_TEXT),
+                        "pa$am3", new ParameterValue("result3", OutputType.PLAIN_TEXT),
+                        "pa{}{m4", new ParameterValue("result4", OutputType.PLAIN_TEXT)));
         assertEquals(
                 """
                         {
@@ -124,7 +126,8 @@ class HttpHelperTest {
     void parseRequestBodyOnlyParameter() {
         String result = HttpHelper.parseRequestBody(
                 "{{ parameter }}", Map.of(
-                        "parameter", "test"));
+                        "parameter",
+                        new ParameterValue("test", OutputType.PLAIN_TEXT)));
         assertEquals(
                 "test",
                 result
@@ -134,14 +137,14 @@ class HttpHelperTest {
     @Test
     void parseRequestUrlWorking() {
         String result = HttpHelper.parseRequestUrl("https://localhost:8080/param/{param1}/hello",
-            Map.of("param1", "result2"));
+            Map.of("param1", new ParameterValue("result2", OutputType.PLAIN_TEXT)));
         assertEquals("https://localhost:8080/param/result2/hello", result);
     }
 
     @Test
     void parseRequestUrlWithWhitespaces() {
         String result = HttpHelper.parseRequestUrl("https://localhost:8080/param/{   param1    }/hello",
-            Map.of("param1", "result2"));
+            Map.of("param1", new ParameterValue("result2", OutputType.PLAIN_TEXT)));
         assertEquals("https://localhost:8080/param/result2/hello", result);
     }
 
@@ -149,10 +152,10 @@ class HttpHelperTest {
     void parseRequestUrlMultipleParameters() {
         String result = HttpHelper.parseRequestUrl(
                 "https://localhost:8080/param/{param1}/{parm2}/{pa$am3}/{param4}", Map.of(
-                        "param1", "result1",
-                        "parm2", "result2",
-                        "pa$am3", "result3",
-                        "param4", "result4"));
+                        "param1", new ParameterValue("result1", OutputType.PLAIN_TEXT),
+                        "parm2", new ParameterValue("result2", OutputType.PLAIN_TEXT),
+                        "pa$am3",new ParameterValue("result3", OutputType.PLAIN_TEXT),
+                        "param4", new ParameterValue("result4", OutputType.PLAIN_TEXT)));
         assertEquals("https://localhost:8080/param/result1/result2/result3/result4", result);
     }
 
@@ -160,7 +163,7 @@ class HttpHelperTest {
     void parseRequestUrlOnlyParameter() {
         String result = HttpHelper.parseRequestUrl(
                 "{ parameter }", Map.of(
-                        "parameter", "test"));
+                        "parameter", new ParameterValue("test", OutputType.PLAIN_TEXT)));
         assertEquals("test", result);
     }
 }

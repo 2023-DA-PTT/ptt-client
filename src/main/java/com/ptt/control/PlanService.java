@@ -33,7 +33,7 @@ public class PlanService {
 
         List<HttpStepDto> httpStepDtoList = service.getHttpStepsByPlanId(plan.getId());
         for (HttpStepDto dto : httpStepDtoList) {
-            HttpStep step = new HttpStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getMethod(), dto.getUrl(), dto.getBody(), dto.getResponseContentType());
+            HttpStep step = new HttpStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getMethod(), dto.getUrl(), dto.getBody(), dto.getResponseContentType(), dto.getContentType());
             plan.getSteps().add(step);
             if (step.getId() == planDto.startId) {
                 plan.setStart(step);
@@ -52,7 +52,7 @@ public class PlanService {
         for (Step step : plan.getSteps()) {
             List<OutputArgumentDto> outArgsDtoList = service.getOutputArgumentsByStepId(plan.getId(), step.getId());
             for (OutputArgumentDto outArgDto : outArgsDtoList) {
-                OutputArgument outArg = new OutputArgument(outArgDto.id, step, outArgDto.name, outArgDto.parameterLocation);
+                OutputArgument outArg = new OutputArgument(outArgDto.id, step, outArgDto.name, outArgDto.parameterLocation, outArgDto.outputType);
                 outputMap.put(outArg.getId(), outArg);
                 step.getOutputArguments().add(outArg);
             }

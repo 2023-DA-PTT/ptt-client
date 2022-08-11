@@ -1,6 +1,7 @@
 package com.ptt.entities.dto;
 
 import com.ptt.entities.HttpStep;
+import com.ptt.entities.RequestContentType;
 
 public class HttpStepDto {
     private Long id;
@@ -9,9 +10,10 @@ public class HttpStepDto {
     private String method;
     private String url;
     private String body;
-    private String responseContentType;
+    private RequestContentType responseContentType;
+    private RequestContentType contentType;
 
-    public HttpStepDto(Long id, String name, String description, String method, String url, String body, String responseContentType) {
+    public HttpStepDto(Long id, String name, String description, String method, String url, String body, RequestContentType responseContentType, RequestContentType contentType) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -19,10 +21,11 @@ public class HttpStepDto {
         this.url = url;
         this.body = body;
         this.responseContentType = responseContentType;
+        this.contentType = contentType;
     }
 
     public static HttpStepDto from(HttpStep httpStep) {
-        return new HttpStepDto(httpStep.getId(), httpStep.getName(), httpStep.getDescription(), httpStep.getMethod(), httpStep.getUrl(), httpStep.getBody(), httpStep.getResponseContentType());
+        return new HttpStepDto(httpStep.getId(), httpStep.getName(), httpStep.getDescription(), httpStep.getMethod(), httpStep.getUrl(), httpStep.getBody(), httpStep.getResponseContentType(), httpStep.getContentType());
     }
 
     public Long getId() {
@@ -81,13 +84,22 @@ public class HttpStepDto {
     }
 
 
-    public String getResponseContentType() {
+    public RequestContentType getResponseContentType() {
         return responseContentType;
     }
 
 
-    public void setResponseContentType(String responseContentType) {
+    public void setResponseContentType(RequestContentType responseContentType) {
         this.responseContentType = responseContentType;
     }
 
+
+    public RequestContentType getContentType() {
+        return contentType;
+    }
+
+
+    public void setContentType(RequestContentType contentType) {
+        this.contentType = contentType;
+    }
 }

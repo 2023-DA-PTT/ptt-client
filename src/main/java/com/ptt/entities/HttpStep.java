@@ -4,15 +4,25 @@ public class HttpStep extends Step {
     private final String method;
     private final String url;
     private final String body;
-    private final String responseContentType;
+    private final RequestContentType responseContentType;
+    private final RequestContentType contentType; 
 
     public HttpStep(Long id, Plan plan, String name, String description, String method, String url, String body,
-            String responseContentType) {
+    RequestContentType responseContentType, RequestContentType contentType) {
         super(id, plan, name, description);
         this.method = method;
         this.url = url;
         this.body = body;
         this.responseContentType = responseContentType;
+        this.contentType = contentType;
+    }
+
+    public RequestContentType getResponseContentType() {
+        return responseContentType;
+    }
+
+    public RequestContentType getContentType() {
+        return contentType;
     }
 
     public String getMethod() {
@@ -25,9 +35,5 @@ public class HttpStep extends Step {
 
     public String getBody() {
         return body;
-    }
-
-    public String getResponseContentType() {
-        return responseContentType;
     }
 }
