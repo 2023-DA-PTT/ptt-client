@@ -15,6 +15,7 @@ import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
@@ -71,7 +72,11 @@ public class Main {
                     .allowHostClassLookup(className -> true)
                     .build();
             Value func = context.eval("js", scr);
-            Value result = func.execute(params);
+            Map<String,String> convert = new HashMap<>();
+            for (String key: params.keySet()) {
+                convert.put(key, params.get(key).getValue());
+            }
+            Value result = func.execute(convert);
             return (OutputArgument argument) -> result.getMember(argument.getParameterLocation()).asString();
         }
 
@@ -105,10 +110,11 @@ public class Main {
 
         @Override
         public int run(String... args) throws Exception {
+            boolean runOnce = false;
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             long endTime = planRun.getStartTime() + planRun.getDuration();
-            while (endTime >= Instant.now().getEpochSecond()) {
+            while (endTime >= Instant.now().getEpochSecond()||runOnce) {
                 Queue<QueueElement> stepQueue = new LinkedList<>();
                 stepQueue.add(new QueueElement(planRun.getPlan().getStart()));
 
@@ -118,7 +124,7 @@ public class Main {
                     LOG.info(String.format("Entering Queue step: %s", step.toString()));
                     ExecutedStep execStep = executeStep(step, queueElement.getParameters());
 
-                    if (endTime < Instant.now().getEpochSecond()) {
+                    if (endTime < Instant.now().getEpochSecond() && !runOnce) {
                         break;
                     }
                     try {
@@ -138,6 +144,7 @@ public class Main {
                         LOG.warn(String.format("Response body doesn't include parameter"), pnfe);
                     }
                 }
+                if(runOnce) break;
             }
             return 0;
         }
