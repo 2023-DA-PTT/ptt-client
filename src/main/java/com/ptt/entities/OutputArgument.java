@@ -5,12 +5,18 @@ public class OutputArgument {
     private final Step step;
     private final String name;
     private final String parameterLocation;
+    private final OutputType outputType;
 
-    public OutputArgument(Long id, Step step, String name, String parameterLocation) {
+    public OutputArgument(Long id, Step step, String name, String parameterLocation, OutputType outputType) {
         this.id = id;
         this.step = step;
         this.name = name;
         this.parameterLocation = parameterLocation;
+        this.outputType = outputType;
+    }
+
+    public OutputType getOutputType() {
+        return outputType;
     }
 
     public Long getId() {

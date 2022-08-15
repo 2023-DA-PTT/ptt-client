@@ -1,8 +1,8 @@
 package com.ptt.httpclient.boundary;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 
 import com.ptt.httpclient.entity.RequestResult;
 
@@ -15,10 +15,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 public class HttpExecutor {
-    private final HttpClient httpClient;
-    HttpRequestBase request;
+    private final CloseableHttpClient httpClient;
+    HttpUriRequestBase request;
 
-    public HttpExecutor(HttpClient httpClient, HttpRequestBase request) {
+    public HttpExecutor(CloseableHttpClient httpClient, HttpUriRequestBase request) {
         this.httpClient = httpClient;
         this.request = request;
     }
@@ -26,7 +26,7 @@ public class HttpExecutor {
     public RequestResult execute() throws IOException {
         long startMilli = Instant.now().toEpochMilli();
         long startTime = System.nanoTime();
-        HttpResponse response = httpClient.execute(request);
+        CloseableHttpResponse response = httpClient.execute(request);
         long endTime = System.nanoTime();
 
         StringBuilder textBuilder = new StringBuilder();
@@ -37,7 +37,7 @@ public class HttpExecutor {
                 textBuilder.append((char) c);
             }
         }
-        return new RequestResult(response.getStatusLine().getStatusCode(),
+        return new RequestResult(response.getCode(),
                 textBuilder.toString(), startMilli, endTime-startTime);
     }
 }

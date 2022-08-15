@@ -33,7 +33,7 @@ public class RequestResult {
         return duration;
     }
 
-    public String getContent(String jsonLocation) throws IOException {
+    public <T> T getContent(String jsonLocation) throws IOException {
         return JsonPath.read(content, jsonLocation);
     }
 
