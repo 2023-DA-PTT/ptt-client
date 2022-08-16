@@ -20,7 +20,7 @@ public interface RestService {
 
     @GET
     @Path("plan/{planId}/step/{stepId}/nexts")
-    List<StepDto> getNextStepsByStepId(@PathParam("planId") long planId,@PathParam("stepId") long stepId);
+    List<NextStepDto> getNextStepsByStepId(@PathParam("planId") long planId,@PathParam("stepId") long stepId);
 
     @GET
     @Path("plan/{planId}/step/script")

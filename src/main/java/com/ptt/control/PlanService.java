@@ -72,17 +72,17 @@ public class PlanService {
             List<StepParameterRelationDto> relationDtoList =
                     service.getStepParameterRelationByStepIdFrom(plan.getId(), step.getId());
             Map<Long, NextStep> nextStepMap = new HashMap<>();
-            List<StepDto> nextStepDtos = service.getNextStepsByStepId(plan.getId(), step.getId());
+            List<NextStepDto> nextStepDtos = service.getNextStepsByStepId(plan.getId(), step.getId());
 
-            for(StepDto dto: nextStepDtos) {
-                NextStep nextStep = new NextStep(stepMap.get(dto.id));
+            for(NextStepDto dto: nextStepDtos) {
+                NextStep nextStep = new NextStep(stepMap.get(dto.getToStep().id), dto.getRepeatAmount());
                 step.getNextSteps().add(nextStep);
-                nextStepMap.put(dto.id, nextStep);
+                nextStepMap.put(dto.getToStep().id, nextStep);
             }
 
             for (StepParameterRelationDto stepParameterRelationDto : relationDtoList) {
-                InputArgument inArg = inputMap.get(stepParameterRelationDto.fromId);
-                OutputArgument outArg = outputMap.get(stepParameterRelationDto.toId);
+                InputArgument inArg = inputMap.get(stepParameterRelationDto.toId);
+                OutputArgument outArg = outputMap.get(stepParameterRelationDto.fromId);
                 NextStep nextStep = nextStepMap.get(inArg.getStep().getId());
                 StepParameterRelation rel = new StepParameterRelation(inArg, outArg);
                 nextStep.getParams().add(rel);
