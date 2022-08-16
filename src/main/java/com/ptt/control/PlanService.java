@@ -30,19 +30,23 @@ public class PlanService {
 
         Map<Long, InputArgument> inputMap = new HashMap<>();
         Map<Long, OutputArgument> outputMap = new HashMap<>();
+        Map<Long, Step> stepMap = new HashMap<>();
+            
 
         List<HttpStepDto> httpStepDtoList = service.getHttpStepsByPlanId(plan.getId());
         for (HttpStepDto dto : httpStepDtoList) {
             HttpStep step = new HttpStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getMethod(), dto.getUrl(), dto.getBody(), dto.getResponseContentType(), dto.getContentType());
+            stepMap.put(step.getId(), step);
             plan.getSteps().add(step);
             if (step.getId() == planDto.startId) {
                 plan.setStart(step);
             }
         }
-
+        
         List<ScriptStepDto> scriptStepDtoList = service.getScriptStepsByPlanId(plan.getId());
         for (ScriptStepDto dto : scriptStepDtoList) {
             ScriptStep step = new ScriptStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getScript());
+            stepMap.put(step.getId(), step);
             plan.getSteps().add(step);
             if (step.getId() == planDto.startId) {
                 plan.setStart(step);
@@ -68,17 +72,20 @@ public class PlanService {
             List<StepParameterRelationDto> relationDtoList =
                     service.getStepParameterRelationByStepIdFrom(plan.getId(), step.getId());
             Map<Long, NextStep> nextStepMap = new HashMap<>();
+            List<StepDto> nextStepDtos = service.getNextStepsByStepId(plan.getId(), step.getId());
+
+            for(StepDto dto: nextStepDtos) {
+                NextStep nextStep = new NextStep(stepMap.get(dto.id));
+                step.getNextSteps().add(nextStep);
+                nextStepMap.put(dto.id, nextStep);
+            }
+
             for (StepParameterRelationDto stepParameterRelationDto : relationDtoList) {
                 InputArgument inArg = inputMap.get(stepParameterRelationDto.fromId);
                 OutputArgument outArg = outputMap.get(stepParameterRelationDto.toId);
                 NextStep nextStep = nextStepMap.get(inArg.getStep().getId());
-                if (nextStep == null) {
-                    nextStep = new NextStep(inArg.getStep());
-                    step.getNextSteps().add(nextStep);
-                }
                 StepParameterRelation rel = new StepParameterRelation(inArg, outArg);
                 nextStep.getParams().add(rel);
-                nextStepMap.putIfAbsent(inArg.getStep().getId(), nextStep);
             }
         }
 

@@ -81,7 +81,7 @@ public class HttpExecutorBuilder {
                     ParameterValue pv = multipartValues.get(key);
                     switch (pv.getType()) {
                         case PLAIN_TEXT:
-                            meb.addTextBody(key, pv.getValue(), ContentType.APPLICATION_OCTET_STREAM);
+                            meb.addTextBody(key, pv.getValue(), ContentType.TEXT_PLAIN);
                             break;
                             case OCTET_STREAM:
                             meb.addTextBody(key, pv.getValue(), ContentType.APPLICATION_OCTET_STREAM);

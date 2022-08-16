@@ -85,7 +85,7 @@ public class Main {
                     .create()
                     .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
                     .setMethod(step.getMethod())
-                    .setContentType(CONTENT_TYPE_MAPPING.get(RequestContentType.APPLICATION_JSON));
+                    .setContentType(CONTENT_TYPE_MAPPING.get(step.getContentType()));
             switch (step.getContentType()) {
                 case APPLICATION_JSON -> executorBuilder.setBody(HttpHelper.parseRequestBody(step.getBody(), params));
                 case MULTIPART_FORM_DATA -> {
@@ -110,7 +110,7 @@ public class Main {
 
         @Override
         public int run(String... args) throws Exception {
-            boolean runOnce = false;
+            boolean runOnce = true;
             PlanRun planRun = planService.readPlanRun(planRunId);
             LOG.info(String.format("Read plan run with id %d successfully", planRun.getId()));
             long endTime = planRun.getStartTime() + planRun.getDuration();
