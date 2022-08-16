@@ -136,7 +136,9 @@ public class Main {
                                     param.getTo().getName(),
                                     new ParameterValue(parameterContent, param.getFrom().getOutputType()));
                             }
-                            stepQueue.add(newQueueElement);
+                            for (int i = 0; i < nextStep.getRepeatAmount(); i++) {
+                                stepQueue.add(newQueueElement);
+                            }
                         }
                     } catch (IOException e) {
                         LOG.warn(String.format("Could not read output parameter from response body!"), e);
