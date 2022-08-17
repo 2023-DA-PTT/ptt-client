@@ -27,11 +27,12 @@ public class PlanService {
         planRun.setPlan(plan);
         planRun.setStartTime(planRunDto.getStartTime());
         planRun.setDuration(planRunDto.getDuration());
+        planRun.setRunOnce(planRunDto.isRunOnce());
 
         Map<Long, InputArgument> inputMap = new HashMap<>();
         Map<Long, OutputArgument> outputMap = new HashMap<>();
         Map<Long, Step> stepMap = new HashMap<>();
-            
+
 
         List<HttpStepDto> httpStepDtoList = service.getHttpStepsByPlanId(plan.getId());
         for (HttpStepDto dto : httpStepDtoList) {

@@ -5,12 +5,22 @@ public class PlanRunDto {
     private long planId;
     private long startTime;
     private long duration;
+    private boolean runOnce;
 
-    public PlanRunDto(long id, long planId, long startTime, long duration) {
+    public PlanRunDto(long id, long planId, long startTime, long duration, boolean runOnce) {
         this.id = id;
         this.planId = planId;
         this.startTime = startTime;
         this.duration = duration;
+        this.runOnce = runOnce;
+    }
+
+    public boolean isRunOnce() {
+        return runOnce;
+    }
+
+    public void setRunOnce(boolean runOnce) {
+        this.runOnce = runOnce;
     }
 
     public PlanRunDto() {
