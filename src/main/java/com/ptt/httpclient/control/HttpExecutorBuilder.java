@@ -1,14 +1,11 @@
 package com.ptt.httpclient.control;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import io.quarkus.logging.Log;
 import org.apache.hc.client5.http.classic.methods.*;
-import org.apache.hc.client5.http.entity.mime.Header;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -69,14 +66,16 @@ public class HttpExecutorBuilder {
             Log.info("Sending header " + entry.getKey() + " with value " + entry.getValue());
         }
 
-        if(method.equals("DELETE") || method.equals("GET")) {
-            return new HttpExecutor(httpClient, request);
-        }
-        else if(method.equals("POST") || method.equals("PUT") || method.equals("PATCH")) {
-            return buildWithEntityEnclosing(request);
-        }
-        else {
-            return null;
+        switch (method) {
+            case "DELETE":
+            case "GET":
+                return new HttpExecutor(httpClient, request);
+            case "POST":
+            case "PUT":
+            case "PATCH":
+                return buildWithEntityEnclosing(request);
+            default:
+                return null;
         }
     }
 

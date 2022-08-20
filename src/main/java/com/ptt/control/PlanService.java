@@ -3,7 +3,6 @@ package com.ptt.control;
 import com.ptt.boundary.RestService;
 import com.ptt.entities.*;
 import com.ptt.entities.dto.*;
-import io.quarkus.logging.Log;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -12,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PlanService {
