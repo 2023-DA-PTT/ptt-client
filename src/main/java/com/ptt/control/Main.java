@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.stream.Collectors;
 
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
@@ -85,6 +86,7 @@ public class Main {
                     .create()
                     .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
                     .setMethod(step.getMethod())
+                    .setHeaders(step.getHeaders().stream().collect(Collectors.toMap(HttpStepHeader::getName, HttpStepHeader::getValue)))
                     .setContentType(CONTENT_TYPE_MAPPING.get(step.getContentType()));
             switch (step.getContentType()) {
                 case APPLICATION_JSON -> executorBuilder.setBody(HttpHelper.parseRequestBody(step.getBody(), params));

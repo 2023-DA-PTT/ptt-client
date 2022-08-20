@@ -3,13 +3,16 @@ package com.ptt.control;
 import com.ptt.boundary.RestService;
 import com.ptt.entities.*;
 import com.ptt.entities.dto.*;
+import io.quarkus.logging.Log;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PlanService {
@@ -36,7 +39,20 @@ public class PlanService {
 
         List<HttpStepDto> httpStepDtoList = service.getHttpStepsByPlanId(plan.getId());
         for (HttpStepDto dto : httpStepDtoList) {
-            HttpStep step = new HttpStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getMethod(), dto.getUrl(), dto.getBody(), dto.getResponseContentType(), dto.getContentType());
+            HttpStep step = new HttpStep(dto.getId(),
+                    plan,
+                    dto.getName(),
+                    dto.getDescription(),
+                    dto.getMethod(),
+                    dto.getUrl(),
+                    dto.getBody(),
+                    dto.getResponseContentType(),
+                    dto.getContentType(),
+                    new ArrayList<>()
+            );
+            dto.getHeaders().stream()
+                    .map(header -> HttpStepHeaderDto.to(header, step))
+                    .forEach(step::addHeader);
             stepMap.put(step.getId(), step);
             plan.getSteps().add(step);
             if (step.getId() == planDto.startId) {
