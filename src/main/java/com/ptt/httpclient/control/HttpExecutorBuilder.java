@@ -1,5 +1,6 @@
 package com.ptt.httpclient.control;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -100,12 +101,13 @@ public class HttpExecutorBuilder {
                             meb.addTextBody(key, pv.getValue(), ContentType.TEXT_PLAIN);
                             break;
                             case OCTET_STREAM:
-                            meb.addTextBody(key, pv.getValue(), ContentType.APPLICATION_OCTET_STREAM);
+                            meb.addBinaryBody(key, new ByteArrayInputStream(pv.getValue().getBytes()), ContentType.APPLICATION_OCTET_STREAM, "MyAwesomeFileName");
                             break;
                         default:
                             break;
                     }
                 }
+
                 contentTypeHeaderSuffix = "; boundary=\"" + multipartBoundary + "\"";
                 meb.setBoundary(multipartBoundary);
                 request.setEntity(meb.build());
