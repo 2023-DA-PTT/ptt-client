@@ -27,6 +27,7 @@ public class HttpExecutorBuilder {
     private HttpExecutorBuilder() {
         multipartValues = new HashMap<>();
         httpClient = HttpClients.createDefault();
+        headers = new HashMap<>();
     }
 
     public static HttpExecutorBuilder create() {
