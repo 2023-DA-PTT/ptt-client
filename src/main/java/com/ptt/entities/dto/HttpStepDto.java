@@ -3,6 +3,9 @@ package com.ptt.entities.dto;
 import com.ptt.entities.HttpStep;
 import com.ptt.entities.RequestContentType;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class HttpStepDto {
     private Long id;
     private String name;
@@ -12,8 +15,9 @@ public class HttpStepDto {
     private String body;
     private RequestContentType responseContentType;
     private RequestContentType contentType;
+    private List<HttpStepHeaderDto> headers;
 
-    public HttpStepDto(Long id, String name, String description, String method, String url, String body, RequestContentType responseContentType, RequestContentType contentType) {
+    public HttpStepDto(Long id, String name, String description, String method, String url, String body, RequestContentType responseContentType, RequestContentType contentType, List<HttpStepHeaderDto> headers) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -22,16 +26,32 @@ public class HttpStepDto {
         this.body = body;
         this.responseContentType = responseContentType;
         this.contentType = contentType;
+        this.headers = headers;
     }
 
     public static HttpStepDto from(HttpStep httpStep) {
-        return new HttpStepDto(httpStep.getId(), httpStep.getName(), httpStep.getDescription(), httpStep.getMethod(), httpStep.getUrl(), httpStep.getBody(), httpStep.getResponseContentType(), httpStep.getContentType());
+        return new HttpStepDto(httpStep.getId(),
+                httpStep.getName(),
+                httpStep.getDescription(),
+                httpStep.getMethod(),
+                httpStep.getUrl(),
+                httpStep.getBody(),
+                httpStep.getResponseContentType(),
+                httpStep.getContentType(),
+                httpStep.getHeaders().stream().map(HttpStepHeaderDto::from).collect(Collectors.toList()));
     }
 
     public Long getId() {
         return id;
     }
 
+    public List<HttpStepHeaderDto> getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(List<HttpStepHeaderDto> headers) {
+        this.headers = headers;
+    }
 
     public void setId(Long id) {
         this.id = id;

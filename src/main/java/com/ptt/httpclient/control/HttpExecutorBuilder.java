@@ -1,8 +1,10 @@
 package com.ptt.httpclient.control;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.quarkus.logging.Log;
 import org.apache.hc.client5.http.classic.methods.*;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -18,6 +20,7 @@ public class HttpExecutorBuilder {
     private String body;
     private String method;
     private String contentType;
+    private Map<String, String> headers;
     private final CloseableHttpClient httpClient;
     private final Map<String, ParameterValue> multipartValues;
 
@@ -56,17 +59,21 @@ public class HttpExecutorBuilder {
     }
 
     public HttpExecutor build() {
+        HttpUriRequestBase request = new HttpUriRequestBase(method, URI.create(url));
+
+        for (Map.Entry<String, String> entry : this.headers.entrySet()) {
+            request.addHeader(entry.getKey(), entry.getValue());
+            Log.info("Sending header " + entry.getKey() + " with value " + entry.getValue());
+        }
+
         switch (method) {
             case "DELETE":
-                return new HttpExecutor(httpClient, new HttpDelete(url));
             case "GET":
-                return new HttpExecutor(httpClient, new HttpGet(url));
+                return new HttpExecutor(httpClient, request);
             case "POST":
-                return buildWithEntityEnclosing(new HttpPost(url));
             case "PUT":
-                return buildWithEntityEnclosing(new HttpPut(url));
             case "PATCH":
-                return buildWithEntityEnclosing(new HttpPatch(url));
+                return buildWithEntityEnclosing(request);
             default:
                 return null;
         }
@@ -99,6 +106,12 @@ public class HttpExecutorBuilder {
             default:
                 return null;
         }
+
         return new HttpExecutor(httpClient, request);
+    }
+
+    public HttpExecutorBuilder setHeaders(Map<String, String> headers) {
+        this.headers = headers;
+        return this;
     }
 }
