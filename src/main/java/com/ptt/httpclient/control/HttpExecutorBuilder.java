@@ -86,17 +86,16 @@ public class HttpExecutorBuilder {
     }
 
     private HttpExecutor buildWithEntityEnclosing(HttpUriRequestBase request) {
-        request.addHeader("content-type", contentType);
         switch (contentType) {
             case "multipart/form-data":
                 MultipartEntityBuilder meb = MultipartEntityBuilder.create();
-                for (String key: multipartValues.keySet()) {
+                for (String key : multipartValues.keySet()) {
                     ParameterValue pv = multipartValues.get(key);
                     switch (pv.getType()) {
                         case PLAIN_TEXT:
                             meb.addTextBody(key, pv.getValue(), ContentType.TEXT_PLAIN);
                             break;
-                            case OCTET_STREAM:
+                        case OCTET_STREAM:
                             meb.addTextBody(key, pv.getValue(), ContentType.APPLICATION_OCTET_STREAM);
                             break;
                         default:
@@ -106,13 +105,14 @@ public class HttpExecutorBuilder {
                 request.setEntity(meb.build());
                 break;
             case "application/json":
+                request.addHeader("content-type", contentType);
                 StringEntity params = new StringEntity(body, ContentType.APPLICATION_JSON);
                 request.setEntity(params);
                 break;
             default:
                 return null;
         }
-
+        
         return new HttpExecutor(httpClient, request);
     }
 }
