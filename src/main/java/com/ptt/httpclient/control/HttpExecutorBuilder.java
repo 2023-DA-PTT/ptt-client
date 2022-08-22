@@ -3,6 +3,7 @@ package com.ptt.httpclient.control;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import io.quarkus.logging.Log;
 import org.apache.hc.client5.http.classic.methods.*;
@@ -24,9 +25,12 @@ public class HttpExecutorBuilder {
     private final CloseableHttpClient httpClient;
     private final Map<String, ParameterValue> multipartValues;
 
+    private final String multipartBoundary = UUID.randomUUID().toString();
+
     private HttpExecutorBuilder() {
         multipartValues = new HashMap<>();
         httpClient = HttpClients.createDefault();
+        headers = new HashMap<>();
     }
 
     public static HttpExecutorBuilder create() {
@@ -85,7 +89,7 @@ public class HttpExecutorBuilder {
     }
 
     private HttpExecutor buildWithEntityEnclosing(HttpUriRequestBase request) {
-        request.addHeader("content-type", contentType);
+        String contentTypeHeaderSuffix = "";
         switch (contentType) {
             case "multipart/form-data":
                 MultipartEntityBuilder meb = MultipartEntityBuilder.create();
@@ -102,6 +106,8 @@ public class HttpExecutorBuilder {
                             break;
                     }
                 }
+                contentTypeHeaderSuffix = "; boundary=\"" + multipartBoundary + "\"";
+                meb.setBoundary(multipartBoundary);
                 request.setEntity(meb.build());
                 break;
             case "application/json":
@@ -111,6 +117,8 @@ public class HttpExecutorBuilder {
             default:
                 return null;
         }
+
+        request.addHeader("content-type", contentType + contentTypeHeaderSuffix);
 
         return new HttpExecutor(httpClient, request);
     }
