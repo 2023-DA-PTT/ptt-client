@@ -38,6 +38,11 @@ public class HttpExecutorBuilder {
         return this;
     }
 
+    public HttpExecutorBuilder setHeader(String header, String value) {
+        this.headers.put(header, value);
+        return this;
+    }
+
     public HttpExecutorBuilder setUrl(String url) {
         this.url = url;
         return this;
@@ -108,10 +113,5 @@ public class HttpExecutorBuilder {
         }
 
         return new HttpExecutor(httpClient, request);
-    }
-
-    public HttpExecutorBuilder setHeaders(Map<String, String> headers) {
-        this.headers = headers;
-        return this;
     }
 }

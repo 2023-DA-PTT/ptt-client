@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.stream.Collectors;
 
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
@@ -47,9 +46,8 @@ public class Main {
         long planRunId;
 
         private static Map<RequestContentType, String> CONTENT_TYPE_MAPPING = Map.ofEntries(
-            Map.entry(RequestContentType.APPLICATION_JSON, "application/json"),
-            Map.entry(RequestContentType.MULTIPART_FORM_DATA, "multipart/form-data")
-        );
+                Map.entry(RequestContentType.APPLICATION_JSON, "application/json"),
+                Map.entry(RequestContentType.MULTIPART_FORM_DATA, "multipart/form-data"));
 
         private interface ExecutedStep {
             String getParameter(OutputArgument argument) throws IOException;
@@ -73,8 +71,8 @@ public class Main {
                     .allowHostClassLookup(className -> true)
                     .build();
             Value func = context.eval("js", scr);
-            Map<String,String> convert = new HashMap<>();
-            for (String key: params.keySet()) {
+            Map<String, String> convert = new HashMap<>();
+            for (String key : params.keySet()) {
                 convert.put(key, params.get(key).getValue());
             }
             Value result = func.execute(convert);
@@ -85,14 +83,16 @@ public class Main {
             HttpExecutorBuilder executorBuilder = HttpExecutorBuilder
                     .create()
                     .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
-                    .setMethod(step.getMethod())
-                    .setHeaders(step.getHeaders().stream().collect(Collectors.toMap(HttpStepHeader::getName, HttpStepHeader::getValue)))
-                    .setContentType(CONTENT_TYPE_MAPPING.get(step.getContentType()));
+                    .setMethod(step.getMethod());
+            for(HttpStepHeader header : step.getHeaders()) {
+                executorBuilder.setHeader(header.getName(), HttpHelper.parseRequestBody(header.getValue(), params));
+            }
+            executorBuilder.setContentType(CONTENT_TYPE_MAPPING.get(step.getContentType()));
             switch (step.getContentType()) {
                 case APPLICATION_JSON -> executorBuilder.setBody(HttpHelper.parseRequestBody(step.getBody(), params));
                 case MULTIPART_FORM_DATA -> {
-                    for(String key : params.keySet()) {
-                        executorBuilder.addMultipartParameter(key, params.get(key)); 
+                    for (String key : params.keySet()) {
+                        executorBuilder.addMultipartParameter(key, params.get(key));
                     }
                     executorBuilder.setBody(HttpHelper.parseRequestBody(step.getBody(), params));
                 }
@@ -135,8 +135,8 @@ public class Main {
                             for (StepParameterRelation param : nextStep.getParams()) {
                                 String parameterContent = execStep.getParameter(param.getFrom());
                                 newQueueElement.getParameters().put(
-                                    param.getTo().getName(),
-                                    new ParameterValue(parameterContent, param.getFrom().getOutputType()));
+                                        param.getTo().getName(),
+                                        new ParameterValue(parameterContent, param.getFrom().getOutputType()));
                             }
                             for (int i = 0; i < nextStep.getRepeatAmount(); i++) {
                                 stepQueue.add(newQueueElement);
@@ -148,7 +148,8 @@ public class Main {
                         LOG.warn(String.format("Response body doesn't include parameter"), pnfe);
                     }
                 }
-                if(runOnce) break;
+                if (runOnce)
+                    break;
             }
             return 0;
         }
