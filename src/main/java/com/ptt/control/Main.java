@@ -8,8 +8,10 @@ import com.ptt.httpclient.boundary.HttpExecutor;
 import com.ptt.httpclient.control.HttpExecutorBuilder;
 import com.ptt.httpclient.control.HttpHelper;
 import com.ptt.httpclient.entity.RequestResult;
+
 import javax.inject.Inject;
 
+import io.quarkus.logging.Log;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -84,7 +86,7 @@ public class Main {
                     .create()
                     .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
                     .setMethod(step.getMethod());
-            for(HttpStepHeader header : step.getHeaders()) {
+            for (HttpStepHeader header : step.getHeaders()) {
                 executorBuilder.setHeader(header.getName(), HttpHelper.parseRequestBody(header.getValue(), params));
             }
             executorBuilder.setContentType(CONTENT_TYPE_MAPPING.get(step.getContentType()));
@@ -93,6 +95,7 @@ public class Main {
                 case MULTIPART_FORM_DATA -> {
                     for (String key : params.keySet()) {
                         executorBuilder.addMultipartParameter(key, params.get(key));
+                        Log.info("Multipart: " + key + " -> " + params.get(key).getValue() + " " + params.get(key).getType().toString());
                     }
                     executorBuilder.setBody(HttpHelper.parseRequestBody(step.getBody(), params));
                 }
@@ -133,10 +136,13 @@ public class Main {
                         for (NextStep nextStep : step.getNextSteps()) {
                             QueueElement newQueueElement = new QueueElement(nextStep.getNext());
                             for (StepParameterRelation param : nextStep.getParams()) {
-                                String parameterContent = execStep.getParameter(param.getFrom());
-                                newQueueElement.getParameters().put(
-                                        param.getTo().getName(),
-                                        new ParameterValue(parameterContent, param.getFrom().getOutputType()));
+                                ParameterValue parameterContent;
+                                if (param.getFrom().getOutputType().equals(OutputType.FROM_INPUT_PARAMETER)) {
+                                    parameterContent = queueElement.getParameters().get(param.getFrom().getParameterLocation());
+                                } else {
+                                    parameterContent = new ParameterValue(execStep.getParameter(param.getFrom()), param.getFrom().getOutputType());
+                                }
+                                newQueueElement.getParameters().put(param.getTo().getName(), parameterContent);
                             }
                             for (int i = 0; i < nextStep.getRepeatAmount(); i++) {
                                 stepQueue.add(newQueueElement);
