@@ -15,15 +15,15 @@ public class PlanRunDto {
         this.runOnce = runOnce;
     }
 
-    public boolean isRunOnce() {
+    public PlanRunDto() {
+    }
+
+    public boolean setRunOnce() {
         return runOnce;
     }
 
-    public void setRunOnce(boolean runOnce) {
+    public void getRunOnce(boolean runOnce) {
         this.runOnce = runOnce;
-    }
-
-    public PlanRunDto() {
     }
 
     public long getId() {
@@ -56,7 +56,13 @@ public class PlanRunDto {
 
     public void setDuration(long duration) {
         this.duration = duration;
-    }    
+    }
 
-    
+    @Override
+    public String toString() {
+      return "PlanRunDto [duration=" + duration + ", id=" + id + ", planId=" + planId + ", runOnce=" + runOnce
+          + ", startTime=" + startTime + "]";
+    }
+
+
 }
