@@ -29,7 +29,7 @@ public class PlanService {
   public Future<Plan> readPlan(WebClient client, long planId) {
     return client.get(443, "api.perftest.tech", "/api/plan/export/" + planId)
         .ssl(true).send()
-        .compose((arg0) -> {
+        .compose((arg0) -> Future.future((event) -> {
           JsonObject planExportJson = arg0.bodyAsJsonObject();
           JsonObject planJson = planExportJson.getJsonObject("plan");
           long startStepId = planJson.getLong("startId");
@@ -41,7 +41,7 @@ public class PlanService {
           Map<Long, Step> stepMap = new HashMap<>();
           Map<Long, InputArgument> inputMap = new HashMap<>();
           Map<Long, OutputArgument> outputMap = new HashMap<>();
-          // Map<Long, StepParameterRelation> relationMap = new HashMap<>();
+          Map<Long, NextStep> nextStepMap = new HashMap<>();
 
           JsonArray httpStepsJson = planExportJson.getJsonArray("httpSteps");
           for (int i = 0; i < httpStepsJson.size(); i++) {
@@ -115,7 +115,6 @@ public class PlanService {
             step.getOutputArguments().add(outArg);
             outputMap.put(outArg.getId(), outArg);
           }
-          Map<Long, NextStep> nextStepMap = new HashMap<>();
 
           JsonArray nextsJson = planExportJson.getJsonArray("nextSteps");
           for (int i = 0; i < nextsJson.size(); i++) {
@@ -138,31 +137,26 @@ public class PlanService {
             NextStep nextStep = nextStepMap.get(relation.getTo().getStep().getId());
             nextStep.getParams().add(relation);
           }
-          return Future.future((event) -> {
-            event.complete(plan);
-          });
-        });
+          event.complete(plan);
+        }));
   }
 
-  public Future<PlanRun> read(Vertx vertx) {
+  public Future<PlanRun> readPlanRun(Vertx vertx, long planRunId) {
     WebClient client = WebClient.create(vertx);
-    int planRunId = 1;
     return client
         .get(443, "api.perftest.tech", "/api/planrun/" + planRunId)
         .ssl(true).send()
-        .compose((res) -> {
-          return Future.future((event) -> {
-            readPlan(client, planRunId).andThen((planEvent) -> {
-              JsonObject planRunJson = res.bodyAsJsonObject();
-              PlanRun planRun = new PlanRun(
-                  planRunJson.getLong("id"),
-                  planEvent.result(),
-                  planRunJson.getLong("startTime"),
-                  planRunJson.getLong("duration"),
-                  planRunJson.getBoolean("runOnce"));
-              event.complete(planRun);
-            });
+        .compose((res) -> Future.future((event) -> {
+          readPlan(client, planRunId).andThen((planEvent) -> {
+            JsonObject planRunJson = res.bodyAsJsonObject();
+            PlanRun planRun = new PlanRun(
+                planRunJson.getLong("id"),
+                planEvent.result(),
+                planRunJson.getLong("startTime"),
+                planRunJson.getLong("duration"),
+                planRunJson.getBoolean("runOnce"));
+            event.complete(planRun);
           });
-        });
+        }));
   }
 }
