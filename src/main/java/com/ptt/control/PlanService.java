@@ -34,14 +34,14 @@ public class PlanService {
           JsonObject planJson = planExportJson.getJsonObject("plan");
           long startStepId = planJson.getLong("startId");
           Plan plan = new Plan(
-            planJson.getLong("id"),
-            planJson.getString("name"),
-            planJson.getString("description"));
+              planJson.getLong("id"),
+              planJson.getString("name"),
+              planJson.getString("description"));
 
           Map<Long, Step> stepMap = new HashMap<>();
           Map<Long, InputArgument> inputMap = new HashMap<>();
           Map<Long, OutputArgument> outputMap = new HashMap<>();
-          //Map<Long, StepParameterRelation> relationMap = new HashMap<>();
+          // Map<Long, StepParameterRelation> relationMap = new HashMap<>();
 
           JsonArray httpStepsJson = planExportJson.getJsonArray("httpSteps");
           for (int i = 0; i < httpStepsJson.size(); i++) {
@@ -115,25 +115,28 @@ public class PlanService {
             step.getOutputArguments().add(outArg);
             outputMap.put(outArg.getId(), outArg);
           }
+          Map<Long, NextStep> nextStepMap = new HashMap<>();
 
           JsonArray nextsJson = planExportJson.getJsonArray("nextSteps");
           for (int i = 0; i < nextsJson.size(); i++) {
             JsonObject next = nextsJson.getJsonObject(i);
             Step step = stepMap.get(next.getLong("fromStepId"));
             NextStep nextStep = new NextStep(
-              stepMap.get(next.getLong("toStepId")),
-              next.getInteger("repeatAmount"));
+                stepMap.get(next.getLong("toStepId")),
+                next.getInteger("repeatAmount"));
             step.getNextSteps().add(nextStep);
+            nextStepMap.put(nextStep.getNext().getId(), nextStep);
           }
 
           JsonArray relations = planExportJson.getJsonArray("relations");
           for (int i = 0; i < relations.size(); i++) {
             JsonObject relationJson = relations.getJsonObject(i);
-            /* StepParameterRelation relation =  */
-            new StepParameterRelation(
-              inputMap.get(relationJson.getLong("to")),
-              outputMap.get(relationJson.getLong("from")));
-            //relationMap.put(relation.getId(), inArg);
+            StepParameterRelation relation = new StepParameterRelation(
+                inputMap.get(relationJson.getLong("toId")),
+                outputMap.get(relationJson.getLong("fromId")));
+
+            NextStep nextStep = nextStepMap.get(relation.getTo().getStep().getId());
+            nextStep.getParams().add(relation);
           }
           return Future.future((event) -> {
             event.complete(plan);
