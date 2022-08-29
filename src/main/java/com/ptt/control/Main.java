@@ -64,7 +64,10 @@ public class Main {
   public static void main(String[] args) {
     Vertx vertx = Vertx.vertx();
     PlanService planService = new PlanService();
-    long planRunId = 2; // TODO: read PLAN RUN ID
+    long planRunId = 2;
+    //TODO: read PLAN RUN ID
+    //TODO: read settings from properties files
+    //TODO: send data to mqtt
     MqttSender mqttSender = new MqttSender();
     planService.readPlanRun(vertx, planRunId).andThen((event) -> {
       System.out.println(event.result().getPlan());

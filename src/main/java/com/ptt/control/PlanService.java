@@ -26,8 +26,11 @@ import io.vertx.ext.web.client.WebClient;
 
 public class PlanService {
 
+  private static final String GET_PLAN_BY_ID_URL_PATH = "/api/plan/export/";
+  private static final String GET_PLANRUN_BY_ID_URL_PATH = "/api/planrun/";
+
   public Future<Plan> readPlan(WebClient client, long planId) {
-    return client.get(443, "api.perftest.tech", "/api/plan/export/" + planId)
+    return client.get(443, "api.perftest.tech", GET_PLAN_BY_ID_URL_PATH + planId)
         .ssl(true).send()
         .compose((arg0) -> Future.future((event) -> {
           JsonObject planExportJson = arg0.bodyAsJsonObject();
@@ -144,7 +147,7 @@ public class PlanService {
   public Future<PlanRun> readPlanRun(Vertx vertx, long planRunId) {
     WebClient client = WebClient.create(vertx);
     return client
-        .get(443, "api.perftest.tech", "/api/planrun/" + planRunId)
+        .get(443, "api.perftest.tech", GET_PLANRUN_BY_ID_URL_PATH + planRunId)
         .ssl(true).send()
         .compose((res) -> Future.future((event) -> {
           readPlan(client, planRunId).andThen((planEvent) -> {
