@@ -5,6 +5,7 @@ public class PlanRunDto {
     private long planId;
     private long startTime;
     private long duration;
+    private String name;
     private boolean runOnce;
 
     public PlanRunDto(long id, long planId, long startTime, long duration, boolean runOnce) {
@@ -56,7 +57,14 @@ public class PlanRunDto {
 
     public void setDuration(long duration) {
         this.duration = duration;
-    }    
+    }
 
-    
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }
