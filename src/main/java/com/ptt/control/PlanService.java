@@ -33,13 +33,16 @@ public class PlanService {
   private final Integer backendPort;
   private final Boolean backendSsl;
 
-  public PlanService(SmallRyeConfig config) {
+  private final WebClient client;
+
+  public PlanService(Vertx vertx, SmallRyeConfig config) {
+    this.client = WebClient.create(vertx);
     backendUrl = config.getValue("ptt-client.backend.url", String.class);
     backendPort = config.getValue("ptt-client.backend.port", Integer.class);
     backendSsl = config.getValue("ptt-client.backend.ssl", Boolean.class);
   }
 
-  public Future<Plan> readPlan(WebClient client, long planId) {
+  public Future<Plan> readPlan(long planId) {
     return client.get(backendPort, backendUrl, GET_PLAN_BY_ID_URL_PATH + planId)
         .ssl(backendSsl).send()
         .compose((arg0) -> Future.future((event) -> {
@@ -154,22 +157,28 @@ public class PlanService {
         }));
   }
 
-  public Future<PlanRun> readPlanRun(Vertx vertx, long planRunId) {
-    WebClient client = WebClient.create(vertx);
+  public Future<PlanRun> readPlanRun(long planRunId) {
     return client
         .get(backendPort, backendUrl, GET_PLANRUN_BY_ID_URL_PATH + planRunId)
         .ssl(backendSsl).send()
-        .compose((res) -> Future.future((event) -> {
-          readPlan(client, planRunId).andThen((planEvent) -> {
+        .compose((res) -> {System.out.println(res.statusCode()); return Future.future((event) -> {
+          readPlan(planRunId).andThen((planEvent) -> {
+            if(res.statusCode() != 200) {
+              event.fail("Could not fetch plan Run!");
+            }
+            Plan plan = planEvent.result();
+            if(plan == null) {
+              event.fail("Plan was not found!");
+            }
             JsonObject planRunJson = res.bodyAsJsonObject();
             PlanRun planRun = new PlanRun(
                 planRunJson.getLong("id"),
-                planEvent.result(),
+                plan,
                 planRunJson.getLong("startTime"),
                 planRunJson.getLong("duration"),
                 planRunJson.getBoolean("runOnce"));
             event.complete(planRun);
           });
-        }));
+        });});
   }
 }

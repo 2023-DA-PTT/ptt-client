@@ -5,7 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.ptt.boundary.MqttSender;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ptt.entities.ExecutedStep;
 import com.ptt.entities.HttpStep;
 import com.ptt.entities.HttpStepHeader;
@@ -20,24 +21,38 @@ import com.ptt.httpclient.control.HttpExecutorBuilder;
 import com.ptt.httpclient.control.HttpHelper;
 import com.ptt.httpclient.entity.RequestResult;
 
+import io.netty.handler.codec.mqtt.MqttQoS;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.mqtt.MqttClient;
+
 import org.graalvm.polyglot.*;
 
 public class StepExecution {
-  
+
     private static Map<RequestContentType, String> CONTENT_TYPE_MAPPING = Map.ofEntries(
             Map.entry(RequestContentType.APPLICATION_JSON, "application/json"),
             Map.entry(RequestContentType.MULTIPART_FORM_DATA, "multipart/form-data"));
 
-    public static ExecutedStep executeStep(long planRunId, MqttSender mqttSender, Step step, Map<String, ParameterValue> params) throws IOException {
+    private final ObjectMapper objectMapper;
+    private final MqttClient mqttClient;
+    private final long planRunId;
+
+    public StepExecution(MqttClient mqttClient, long planRunId) {
+      this.objectMapper = new ObjectMapper();
+      this.mqttClient = mqttClient;
+      this.planRunId = planRunId;
+    }
+
+    public ExecutedStep executeStep(Step step, Map<String, ParameterValue> params) throws IOException {
         if (step instanceof HttpStep) {
-            return executeHttpStep(planRunId, mqttSender, (HttpStep) step, params);
+            return executeHttpStep((HttpStep) step, params);
         } else if (step instanceof ScriptStep) {
             return executeScriptStep((ScriptStep) step, params);
         }
         throw new IllegalStateException("Step is of unknown Step! step: " + step.toString());
     }
 
-    private static ExecutedStep executeScriptStep(ScriptStep step, Map<String, ParameterValue> params) throws IOException {
+    private ExecutedStep executeScriptStep(ScriptStep step, Map<String, ParameterValue> params) throws IOException {
         String scr = "(function(params) {"
                 + step.getScript()
                 + "})";
@@ -54,7 +69,7 @@ public class StepExecution {
         return (OutputArgument argument) -> result.getMember(argument.getParameterLocation()).asString();
     }
 
-    private static ExecutedStep executeHttpStep(long planRunId, MqttSender mqttSender, HttpStep step, Map<String, ParameterValue> params) throws IOException {
+    private ExecutedStep executeHttpStep(HttpStep step, Map<String, ParameterValue> params) throws IOException {
         HttpExecutorBuilder executorBuilder = HttpExecutorBuilder
                 .create()
                 .setUrl(HttpHelper.parseRequestUrl(step.getUrl(), params))
@@ -81,8 +96,18 @@ public class StepExecution {
                 result.getDuration());
 
         //LOG.info(String.format("Sent request to endpoint: %s", result.toString()));
-        mqttSender.send(dataPoint);
+        sendMessageToMqtt(dataPoint);
         //LOG.info(String.format("Sent data to backend: %s", dataPoint.toString()));
         return (OutputArgument argument) -> result.getContent(argument.getParameterLocation());
+    }
+
+    private void sendMessageToMqtt(DataPointClientDto dataPointClientDto) {
+      try {
+        mqttClient.publish("measurements",
+        Buffer.buffer(objectMapper.writeValueAsString(dataPointClientDto)),
+        MqttQoS.EXACTLY_ONCE, false, false);
+      } catch (JsonProcessingException e) {
+        System.out.println("couldn't convert DataPoint to json: " + e.getMessage());
+      }
     }
 }
