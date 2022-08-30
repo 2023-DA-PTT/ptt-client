@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.microprofile.config.ConfigProvider;
+
 import com.jayway.jsonpath.PathNotFoundException;
 import com.ptt.boundary.MqttSender;
 import com.ptt.entities.ExecutedStep;
@@ -13,6 +15,7 @@ import com.ptt.entities.ParameterValue;
 import com.ptt.entities.Step;
 import com.ptt.entities.StepParameterRelation;
 
+import io.smallrye.config.SmallRyeConfig;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -62,13 +65,12 @@ public class Main {
   }
 
   public static void main(String[] args) {
-    Vertx vertx = Vertx.vertx();
-    PlanService planService = new PlanService();
-    long planRunId = 2;
-    //TODO: read PLAN RUN ID
-    //TODO: read settings from properties files
     //TODO: send data to mqtt
+    Vertx vertx = Vertx.vertx();
+    SmallRyeConfig config = ConfigProvider.getConfig().unwrap(SmallRyeConfig.class);
+    long planRunId = config.getValue("ptt-client.plan-run.id", Long.class);
     MqttSender mqttSender = new MqttSender();
+    PlanService planService = new PlanService(config);
     planService.readPlanRun(vertx, planRunId).andThen((event) -> {
       System.out.println(event.result().getPlan());
       QueueElement queueElement = new QueueElement(event.result().getPlan().getStart());

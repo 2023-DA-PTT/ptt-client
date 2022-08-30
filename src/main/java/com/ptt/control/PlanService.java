@@ -18,6 +18,7 @@ import com.ptt.entities.ScriptStep;
 import com.ptt.entities.Step;
 import com.ptt.entities.StepParameterRelation;
 
+import io.smallrye.config.SmallRyeConfig;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -28,10 +29,19 @@ public class PlanService {
 
   private static final String GET_PLAN_BY_ID_URL_PATH = "/api/plan/export/";
   private static final String GET_PLANRUN_BY_ID_URL_PATH = "/api/planrun/";
+  private final String backendUrl;
+  private final Integer backendPort;
+  private final Boolean backendSsl;
+
+  public PlanService(SmallRyeConfig config) {
+    backendUrl = config.getValue("ptt-client.backend.url", String.class);
+    backendPort = config.getValue("ptt-client.backend.port", Integer.class);
+    backendSsl = config.getValue("ptt-client.backend.ssl", Boolean.class);
+  }
 
   public Future<Plan> readPlan(WebClient client, long planId) {
-    return client.get(443, "api.perftest.tech", GET_PLAN_BY_ID_URL_PATH + planId)
-        .ssl(true).send()
+    return client.get(backendPort, backendUrl, GET_PLAN_BY_ID_URL_PATH + planId)
+        .ssl(backendSsl).send()
         .compose((arg0) -> Future.future((event) -> {
           JsonObject planExportJson = arg0.bodyAsJsonObject();
           JsonObject planJson = planExportJson.getJsonObject("plan");
@@ -147,8 +157,8 @@ public class PlanService {
   public Future<PlanRun> readPlanRun(Vertx vertx, long planRunId) {
     WebClient client = WebClient.create(vertx);
     return client
-        .get(443, "api.perftest.tech", GET_PLANRUN_BY_ID_URL_PATH + planRunId)
-        .ssl(true).send()
+        .get(backendPort, backendUrl, GET_PLANRUN_BY_ID_URL_PATH + planRunId)
+        .ssl(backendSsl).send()
         .compose((res) -> Future.future((event) -> {
           readPlan(client, planRunId).andThen((planEvent) -> {
             JsonObject planRunJson = res.bodyAsJsonObject();
