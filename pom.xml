@@ -12,9 +12,15 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.testSource>17</maven.compiler.testSource>
+    <maven.compiler.testTarget>17</maven.compiler.testTarget>
     <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
-    <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+    <maven-surefire-plugin.version>22.2.0</maven-surefire-plugin.version>
     <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
+    <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
 
     <vertx.version>4.3.3</vertx.version>
     <junit-jupiter.version>5.7.0</junit-jupiter.version>
@@ -40,6 +46,11 @@
       <groupId>org.graalvm.sdk</groupId>
       <artifactId>graal-sdk</artifactId>
       <version>22.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.4.0</version>
     </dependency>
     <dependency>
       <groupId>org.graalvm.truffle</groupId>
@@ -126,56 +137,49 @@
     </dependency>
   </dependencies>
 
+
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${maven-compiler-plugin.version}</version>
+        <groupId>io.reactiverse</groupId>
+        <artifactId>vertx-maven-plugin</artifactId>
+        <version>1.0.22</version>
+        <executions>
+          <execution>
+            <id>vmp</id>
+            <goals>
+              <goal>initialize</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
-          <release>17</release>
+          <redeploy>true</redeploy>
         </configuration>
       </plugin>
       <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven-shade-plugin.version}</version>
+        <groupId>org.graalvm.buildtools</groupId>
+        <artifactId>native-maven-plugin</artifactId>
+        <version>0.9.12</version>
+        <extensions>true</extensions>
         <executions>
           <execution>
-            <phase>package</phase>
+            <id>build-native</id>
             <goals>
-              <goal>shade</goal>
+              <goal>build</goal>
             </goals>
-            <configuration>
-              <transformers>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <manifestEntries>
-                    <Main-Class>${launcher.class}</Main-Class>
-                    <Main-Verticle>${main.verticle}</Main-Verticle>
-                  </manifestEntries>
-                </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-              </transformers>
-              <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar
-              </outputFile>
-            </configuration>
+            <phase>package</phase>
           </execution>
         </executions>
+        <configuration>
+          <imageName>ptt-client-native</imageName>
+          <mainClass>com.ptt.control.Main</mainClass>
+          <buildArgs>-H:+PrintClassInitialization -H:+ReportExceptionStackTraces</buildArgs>
+          <fallback>false</fallback>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven-surefire-plugin.version}</version>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>${exec-maven-plugin.version}</version>
-        <configuration>
-          <mainClass>io.vertx.core.Launcher</mainClass>
-          <arguments>
-            <argument>run</argument>
-            <argument>${main.verticle}</argument>
-          </arguments>
-        </configuration>
       </plugin>
     </plugins>
   </build>
