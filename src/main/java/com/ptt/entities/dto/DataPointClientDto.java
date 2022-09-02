@@ -1,6 +1,8 @@
 package com.ptt.entities.dto;
 
-public class DataPointClientDto {
+import java.io.Serializable;
+
+public class DataPointClientDto implements Serializable{
     private long planRunId;
     private long stepId;
     private long startTime;

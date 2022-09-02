@@ -1,109 +1,184 @@
 package com.ptt.control;
 
-import com.ptt.boundary.RestService;
-import com.ptt.entities.*;
-import com.ptt.entities.dto.*;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@ApplicationScoped
+import com.ptt.entities.HttpStep;
+import com.ptt.entities.HttpStepHeader;
+import com.ptt.entities.InputArgument;
+import com.ptt.entities.NextStep;
+import com.ptt.entities.OutputArgument;
+import com.ptt.entities.OutputType;
+import com.ptt.entities.Plan;
+import com.ptt.entities.PlanRun;
+import com.ptt.entities.RequestContentType;
+import com.ptt.entities.ScriptStep;
+import com.ptt.entities.Step;
+import com.ptt.entities.StepParameterRelation;
+
+import io.smallrye.config.SmallRyeConfig;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
+
 public class PlanService {
-    @Inject
-    @RestClient
-    RestService service;
 
-    public PlanRun readPlanRun(long planRunId) {
-        PlanRunDto planRunDto = service.getPlanRunById(planRunId);
-        PlanDto planDto = service.getPlanById(planRunDto.getPlanId());
-        Plan plan = new Plan(planDto.id, planDto.name, planDto.description);
+  private static final String GET_PLAN_BY_ID_URL_PATH = "/api/plan/export/";
+  private static final String GET_PLANRUN_BY_ID_URL_PATH = "/api/planrun/";
+  private final String backendUrl;
+  private final Integer backendPort;
+  private final Boolean backendSsl;
 
-        PlanRun planRun = new PlanRun();
-        planRun.setId(planRunDto.getId());
-        planRun.setPlan(plan);
-        planRun.setStartTime(planRunDto.getStartTime());
-        planRun.setDuration(planRunDto.getDuration());
-        planRun.setRunOnce(planRunDto.isRunOnce());
+  private final WebClient client;
 
-        Map<Long, InputArgument> inputMap = new HashMap<>();
-        Map<Long, OutputArgument> outputMap = new HashMap<>();
-        Map<Long, Step> stepMap = new HashMap<>();
+  public PlanService(Vertx vertx, SmallRyeConfig config) {
+    this.client = WebClient.create(vertx);
+    backendUrl = config.getValue("ptt-client.backend.url", String.class);
+    backendPort = config.getValue("ptt-client.backend.port", Integer.class);
+    backendSsl = config.getValue("ptt-client.backend.ssl", Boolean.class);
+  }
 
+  public Future<Plan> readPlan(long planId) {
+    return client.get(backendPort, backendUrl, GET_PLAN_BY_ID_URL_PATH + planId)
+        .ssl(backendSsl).send()
+        .compose((arg0) -> Future.future((event) -> {
+          JsonObject planExportJson = arg0.bodyAsJsonObject();
+          JsonObject planJson = planExportJson.getJsonObject("plan");
+          long startStepId = planJson.getLong("startId");
+          Plan plan = new Plan(
+              planJson.getLong("id"),
+              planJson.getString("name"),
+              planJson.getString("description"));
 
-        List<HttpStepDto> httpStepDtoList = service.getHttpStepsByPlanId(plan.getId());
-        for (HttpStepDto dto : httpStepDtoList) {
-            HttpStep step = new HttpStep(dto.getId(),
-                    plan,
-                    dto.getName(),
-                    dto.getDescription(),
-                    dto.getMethod(),
-                    dto.getUrl(),
-                    dto.getBody(),
-                    dto.getResponseContentType(),
-                    dto.getContentType(),
-                    new ArrayList<>()
-            );
-            dto.getHeaders().stream()
-                    .map(header -> HttpStepHeaderDto.to(header, step))
-                    .forEach(step::addHeader);
-            stepMap.put(step.getId(), step);
+          Map<Long, Step> stepMap = new HashMap<>();
+          Map<Long, InputArgument> inputMap = new HashMap<>();
+          Map<Long, OutputArgument> outputMap = new HashMap<>();
+          Map<Long, NextStep> nextStepMap = new HashMap<>();
+
+          JsonArray httpStepsJson = planExportJson.getJsonArray("httpSteps");
+          for (int i = 0; i < httpStepsJson.size(); i++) {
+            JsonObject stepJsonObj = httpStepsJson.getJsonObject(i);
+            JsonArray headersJson = stepJsonObj.getJsonArray("headers");
+            List<HttpStepHeader> headers = new ArrayList<>();
+            HttpStep step = new HttpStep(
+                stepJsonObj.getLong("id"),
+                plan,
+                stepJsonObj.getString("name"),
+                stepJsonObj.getString("description"),
+                stepJsonObj.getString("method"),
+                stepJsonObj.getString("url"),
+                stepJsonObj.getString("body"),
+                RequestContentType.valueOf(stepJsonObj.getString("contentType")),
+                RequestContentType.valueOf(stepJsonObj.getString("responseContentType")),
+                headers);
+            for (int j = 0; j < headersJson.size(); j++) {
+              JsonObject headerObj = headersJson.getJsonObject(j);
+              headers.add(new HttpStepHeader(
+                  headerObj.getLong("id"),
+                  headerObj.getString("name"),
+                  headerObj.getString("value"),
+                  step));
+            }
             plan.getSteps().add(step);
-            if (step.getId() == planDto.startId) {
-                plan.setStart(step);
-            }
-        }
-        
-        List<ScriptStepDto> scriptStepDtoList = service.getScriptStepsByPlanId(plan.getId());
-        for (ScriptStepDto dto : scriptStepDtoList) {
-            ScriptStep step = new ScriptStep(dto.getId(), plan, dto.getName(), dto.getDescription(), dto.getScript());
             stepMap.put(step.getId(), step);
+            if (step.getId() == startStepId) {
+              plan.setStart(step);
+            }
+          }
+
+          JsonArray scriptStepsJson = planExportJson.getJsonArray("scriptSteps");
+          for (int i = 0; i < scriptStepsJson.size(); i++) {
+            JsonObject stepJsonObj = scriptStepsJson.getJsonObject(i);
+            ScriptStep step = new ScriptStep(
+                stepJsonObj.getLong("id"),
+                plan,
+                stepJsonObj.getString("name"),
+                stepJsonObj.getString("description"),
+                stepJsonObj.getString("script"));
             plan.getSteps().add(step);
-            if (step.getId() == planDto.startId) {
-                plan.setStart(step);
+            stepMap.put(step.getId(), step);
+            if (step.getId() == startStepId) {
+              plan.setStart(step);
             }
-        }
+          }
 
-        for (Step step : plan.getSteps()) {
-            List<OutputArgumentDto> outArgsDtoList = service.getOutputArgumentsByStepId(plan.getId(), step.getId());
-            for (OutputArgumentDto outArgDto : outArgsDtoList) {
-                OutputArgument outArg = new OutputArgument(outArgDto.id, step, outArgDto.name, outArgDto.parameterLocation, outArgDto.outputType);
-                outputMap.put(outArg.getId(), outArg);
-                step.getOutputArguments().add(outArg);
+          JsonArray inputsJson = planExportJson.getJsonArray("inputs");
+          for (int i = 0; i < inputsJson.size(); i++) {
+            JsonObject input = inputsJson.getJsonObject(i);
+            Step step = stepMap.get(input.getLong("stepId"));
+            InputArgument inArg = new InputArgument(
+                input.getLong("id"),
+                step,
+                input.getString("name"));
+            step.getInputArguments().add(inArg);
+            inputMap.put(inArg.getId(), inArg);
+          }
+
+          JsonArray outputsJson = planExportJson.getJsonArray("outputs");
+          for (int i = 0; i < outputsJson.size(); i++) {
+            JsonObject output = outputsJson.getJsonObject(i);
+            Step step = stepMap.get(output.getLong("stepId"));
+            OutputArgument outArg = new OutputArgument(
+                output.getLong("id"),
+                step,
+                output.getString("name"),
+                output.getString("parameterLocation"),
+                OutputType.valueOf(output.getString("outputType")));
+            step.getOutputArguments().add(outArg);
+            outputMap.put(outArg.getId(), outArg);
+          }
+
+          JsonArray nextsJson = planExportJson.getJsonArray("nextSteps");
+          for (int i = 0; i < nextsJson.size(); i++) {
+            JsonObject next = nextsJson.getJsonObject(i);
+            Step step = stepMap.get(next.getLong("fromStepId"));
+            NextStep nextStep = new NextStep(
+                stepMap.get(next.getLong("toStepId")),
+                next.getInteger("repeatAmount"));
+            step.getNextSteps().add(nextStep);
+            nextStepMap.put(nextStep.getNext().getId(), nextStep);
+          }
+
+          JsonArray relations = planExportJson.getJsonArray("relations");
+          for (int i = 0; i < relations.size(); i++) {
+            JsonObject relationJson = relations.getJsonObject(i);
+            StepParameterRelation relation = new StepParameterRelation(
+                inputMap.get(relationJson.getLong("toId")),
+                outputMap.get(relationJson.getLong("fromId")));
+
+            NextStep nextStep = nextStepMap.get(relation.getTo().getStep().getId());
+            nextStep.getParams().add(relation);
+          }
+          event.complete(plan);
+        }));
+  }
+
+  public Future<PlanRun> readPlanRun(long planRunId) {
+    return client
+        .get(backendPort, backendUrl, GET_PLANRUN_BY_ID_URL_PATH + planRunId)
+        .ssl(backendSsl).send()
+        .compose((res) -> {System.out.println(res.statusCode()); return Future.future((event) -> {
+          readPlan(planRunId).andThen((planEvent) -> {
+            if(res.statusCode() != 200) {
+              event.fail("Could not fetch plan Run!");
             }
-            List<InputArgumentDto> inArgsDtoList = service.getInputArgumentsByStepId(plan.getId(), step.getId());
-            for (InputArgumentDto inArgDto : inArgsDtoList) {
-                InputArgument inputArgument = new InputArgument(inArgDto.id, step, inArgDto.name);
-                inputMap.put(inputArgument.getId(), inputArgument);
-                step.getInputArguments().add(inputArgument);
+            Plan plan = planEvent.result();
+            if(plan == null) {
+              event.fail("Plan was not found!");
             }
-        }
-
-        for (Step step : plan.getSteps()) {
-            List<StepParameterRelationDto> relationDtoList =
-                    service.getStepParameterRelationByStepIdFrom(plan.getId(), step.getId());
-            Map<Long, NextStep> nextStepMap = new HashMap<>();
-            List<NextStepDto> nextStepDtos = service.getNextStepsByStepId(plan.getId(), step.getId());
-
-            for(NextStepDto dto: nextStepDtos) {
-                NextStep nextStep = new NextStep(stepMap.get(dto.getToStep().id), dto.getRepeatAmount());
-                step.getNextSteps().add(nextStep);
-                nextStepMap.put(dto.getToStep().id, nextStep);
-            }
-
-            for (StepParameterRelationDto stepParameterRelationDto : relationDtoList) {
-                InputArgument inArg = inputMap.get(stepParameterRelationDto.toId);
-                OutputArgument outArg = outputMap.get(stepParameterRelationDto.fromId);
-                NextStep nextStep = nextStepMap.get(inArg.getStep().getId());
-                StepParameterRelation rel = new StepParameterRelation(inArg, outArg);
-                nextStep.getParams().add(rel);
-            }
-        }
-
-        return planRun;
-    }
+            JsonObject planRunJson = res.bodyAsJsonObject();
+            PlanRun planRun = new PlanRun(
+                planRunJson.getLong("id"),
+                plan,
+                planRunJson.getLong("startTime"),
+                planRunJson.getLong("duration"),
+                planRunJson.getBoolean("runOnce"));
+            event.complete(planRun);
+          });
+        });});
+  }
 }

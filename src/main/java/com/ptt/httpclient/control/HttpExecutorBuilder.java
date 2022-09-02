@@ -5,7 +5,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.quarkus.logging.Log;
 import org.apache.hc.client5.http.classic.methods.*;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -70,7 +69,7 @@ public class HttpExecutorBuilder {
 
         for (Map.Entry<String, String> entry : this.headers.entrySet()) {
             request.addHeader(entry.getKey(), entry.getValue());
-            Log.info("Sending header " + entry.getKey() + " with value " + entry.getValue());
+            //LOG.info("Sending header " + entry.getKey() + " with value " + entry.getValue());
         }
 
         switch (method) {
@@ -113,7 +112,7 @@ public class HttpExecutorBuilder {
             default:
                 return null;
         }
-        
+
         return new HttpExecutor(httpClient, request);
     }
 }

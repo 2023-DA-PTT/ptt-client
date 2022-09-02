@@ -16,15 +16,15 @@ public class PlanRunDto {
         this.runOnce = runOnce;
     }
 
-    public boolean isRunOnce() {
+    public PlanRunDto() {
+    }
+
+    public boolean setRunOnce() {
         return runOnce;
     }
 
-    public void setRunOnce(boolean runOnce) {
+    public void getRunOnce(boolean runOnce) {
         this.runOnce = runOnce;
-    }
-
-    public PlanRunDto() {
     }
 
     public long getId() {
