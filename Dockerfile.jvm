@@ -11,5 +11,5 @@ COPY ./src /code/src
 RUN ./mvnw package -Pfat
 
 FROM ghcr.io/graalvm/jdk:ol7-java17-22.2.0
-COPY --from=build /code/target /opt
+COPY --from=build /code/target/ptt-client-fat.jar /opt
 CMD ["java", "-jar", "/opt/ptt-client-fat.jar"]
