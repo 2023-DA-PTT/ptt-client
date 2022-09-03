@@ -1,0 +1,15 @@
+FROM ghcr.io/graalvm/jdk:ol7-java17-22.2.0 AS build
+
+# Build JAR
+COPY mvnw /code/mvnw
+COPY .mvn /code/.mvn
+COPY pom.xml /code/
+
+WORKDIR /code
+RUN ./mvnw -B org.apache.maven.plugins:maven-dependency-plugin:3.1.2:go-offline
+COPY ./src /code/src
+RUN ./mvnw package -Pfat
+
+FROM ghcr.io/graalvm/jdk:ol7-java17-22.2.0
+COPY --from=build /code/target /opt
+CMD ["java", "-jar", "/opt/ptt-client-fat.jar"]

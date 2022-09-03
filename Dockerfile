@@ -26,7 +26,7 @@ COPY pom.xml /code/
 WORKDIR /code
 RUN ./mvnw -B org.apache.maven.plugins:maven-dependency-plugin:3.1.2:go-offline
 COPY ./src /code/src
-RUN ./mvnw package
+RUN ./mvnw package -Pnative
 
 # Create image
 FROM centos:7
