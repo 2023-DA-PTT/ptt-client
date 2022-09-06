@@ -38,16 +38,20 @@ public class StepExecution {
     private final long planRunId;
 
     public StepExecution(MqttClient mqttClient, long planRunId) {
-      this.objectMapper = new ObjectMapper();
-      this.mqttClient = mqttClient;
-      this.planRunId = planRunId;
+        this.objectMapper = new ObjectMapper();
+        this.mqttClient = mqttClient;
+        this.planRunId = planRunId;
     }
 
     public ExecutedStep executeStep(Step step, Map<String, ParameterValue> params) throws IOException {
-        if (step instanceof HttpStep) {
-            return executeHttpStep((HttpStep) step, params);
-        } else if (step instanceof ScriptStep) {
-            return executeScriptStep((ScriptStep) step, params);
+        try {
+            if (step instanceof HttpStep) {
+                return executeHttpStep((HttpStep) step, params);
+            } else if (step instanceof ScriptStep) {
+                return executeScriptStep((ScriptStep) step, params);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
         throw new IllegalStateException("Step is of unknown Step! step: " + step.toString());
     }
@@ -56,17 +60,36 @@ public class StepExecution {
         String scr = "(function(params) {"
                 + step.getScript()
                 + "})";
+        Value func;
+        Value result;
+
         Context context = Context.newBuilder("js")
                 .allowHostAccess(HostAccess.ALL)
                 .allowHostClassLookup(className -> true)
                 .build();
-        Value func = context.eval("js", scr);
-        Map<String, String> convert = new HashMap<>();
-        for (String key : params.keySet()) {
-            convert.put(key, params.get(key).getValue());
-        }
-        Value result = func.execute(convert);
-        return (OutputArgument argument) -> result.getMember(argument.getParameterLocation()).asString();
+
+            func = context.eval("js", scr);
+
+            Map<String, String> convert = new HashMap<>();
+            for (String key : params.keySet()) {
+                convert.put(key, params.get(key).getValue());
+            }
+
+            try {
+                result = func.execute(convert);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+
+        return (OutputArgument argument) -> {
+                try {
+                return result.getMember(argument.getParameterLocation()).asString();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                return "asd";
+            }
+        };
     }
 
     private ExecutedStep executeHttpStep(HttpStep step, Map<String, ParameterValue> params) throws IOException {
@@ -102,12 +125,12 @@ public class StepExecution {
     }
 
     private void sendMessageToMqtt(DataPointClientDto dataPointClientDto) {
-      try {
-        mqttClient.publish("measurements",
-        Buffer.buffer(objectMapper.writeValueAsString(dataPointClientDto)),
-        MqttQoS.EXACTLY_ONCE, false, false);
-      } catch (JsonProcessingException e) {
-        System.out.println("couldn't convert DataPoint to json: " + e.getMessage());
-      }
+        try {
+            mqttClient.publish("measurements",
+                    Buffer.buffer(objectMapper.writeValueAsString(dataPointClientDto)),
+                    MqttQoS.EXACTLY_ONCE, false, false);
+        } catch (JsonProcessingException e) {
+            System.out.println("couldn't convert DataPoint to json: " + e.getMessage());
+        }
     }
 }

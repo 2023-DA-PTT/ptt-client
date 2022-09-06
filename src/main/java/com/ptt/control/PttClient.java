@@ -41,7 +41,7 @@ public class PttClient {
 
   public void runTestPlan() {
     planService.readPlanRun(planRunId).andThen((planServiceEvent) -> {
-      mqttClient.connect(mqttPort, mqttAddress,(mqttClientEvent) -> {
+      mqttClient.connect(mqttPort, mqttAddress, (mqttClientEvent) -> {
         QueueElement queueElement = new QueueElement(planServiceEvent.result().getPlan().getStart());
         doStep(planRunId, queueElement)
         .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> {
@@ -50,6 +50,7 @@ public class PttClient {
           });
         }))
         .onFailure((failureEvent) -> {
+          failureEvent.printStackTrace();
           System.out.println("TEST FAILURE: " + failureEvent.getMessage());
           mqttClient.disconnect().andThen((mqttDisconnectEvent) -> {
             vertx.close();
@@ -72,8 +73,9 @@ public class PttClient {
         execStep = stepExecution.executeStep(step, qe.getParameters());
         event.complete(execStep);
       } catch (IOException e) {
+        e.printStackTrace();
         System.out.println("Step failed: "+ e.getMessage());
-        event.complete(null);
+        event.complete((param) -> null);
       }
     }).compose((blockedEvent) -> {
       List<Future> s = new ArrayList<>();

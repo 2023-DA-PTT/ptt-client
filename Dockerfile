@@ -2,6 +2,7 @@ FROM ghcr.io/graalvm/graalvm-ce:ol7-java17-22.2.0 AS build
 
 # Install dependencies
 RUN gu install native-image
+RUN gu install js
 RUN yum -y install glibc
 
 # Build JAR

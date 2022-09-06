@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.rmi.UnknownHostException;
 import java.time.Instant;
 
 public class HttpExecutor {
@@ -26,7 +27,12 @@ public class HttpExecutor {
     public RequestResult execute() throws IOException {
         long startMilli = Instant.now().toEpochMilli();
         long startTime = System.nanoTime();
-        CloseableHttpResponse response = httpClient.execute(request);
+        CloseableHttpResponse response;
+        try {
+            response = httpClient.execute(request);
+        } catch (UnknownHostException exception) {
+            throw new UnknownHostException("Step Failed: cannot reach endpoint.");
+        }
         long endTime = System.nanoTime();
 
         StringBuilder textBuilder = new StringBuilder();
