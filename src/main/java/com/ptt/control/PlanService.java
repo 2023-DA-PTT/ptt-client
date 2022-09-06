@@ -162,7 +162,7 @@ public class PlanService {
         .get(backendPort, backendUrl, GET_PLANRUN_BY_ID_URL_PATH + planRunId)
         .ssl(backendSsl).send()
         .compose((res) -> {System.out.println(res.statusCode()); return Future.future((event) -> {
-          readPlan(planRunId).andThen((planEvent) -> {
+          readPlan(res.bodyAsJsonObject().getLong("planId")).andThen((planEvent) -> {
             if(res.statusCode() != 200) {
               event.fail("Could not fetch plan Run!");
             }
