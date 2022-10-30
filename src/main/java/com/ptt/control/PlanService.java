@@ -27,6 +27,7 @@ import io.vertx.ext.web.client.WebClient;
 
 public class PlanService {
 
+  private final String token = System.getenv().get("BACKEND_TOKEN");
   private static final String GET_PLAN_BY_ID_URL_PATH = "/api/plan/export/";
   private static final String GET_PLANRUN_BY_ID_URL_PATH = "/api/planrun/";
   private final String backendUrl;
@@ -44,6 +45,7 @@ public class PlanService {
 
   public Future<Plan> readPlan(long planId) {
     return client.get(backendPort, backendUrl, GET_PLAN_BY_ID_URL_PATH + planId)
+            .addQueryParam("token", token)
         .ssl(backendSsl).send()
         .compose((arg0) -> Future.future((event) -> {
           JsonObject planExportJson = arg0.bodyAsJsonObject();
@@ -158,8 +160,10 @@ public class PlanService {
   }
 
   public Future<PlanRun> readPlanRun(long planRunId) {
+      System.out.println("TOKEN; " + token);
     return client
         .get(backendPort, backendUrl, GET_PLANRUN_BY_ID_URL_PATH + planRunId)
+            .addQueryParam("token", token)
         .ssl(backendSsl).send()
         .compose((res) -> {System.out.println(res.statusCode()); return Future.future((event) -> {
           readPlan(res.bodyAsJsonObject().getLong("planId")).andThen((planEvent) -> {

@@ -58,7 +58,8 @@ public class PttClient {
         });
       });
     }).onFailure((planServiceFailureEvent) -> {
-      System.out.println("Could not read Test Run: " + planServiceFailureEvent.getMessage());
+      System.out.println("Could not read Test Run: ");
+      planServiceFailureEvent.printStackTrace();
       vertx.close();
     });
   }
