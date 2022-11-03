@@ -10,6 +10,7 @@ import com.ptt.entities.ExecutedStep;
 import com.ptt.entities.NextStep;
 import com.ptt.entities.OutputType;
 import com.ptt.entities.ParameterValue;
+import com.ptt.entities.PlanRun;
 import com.ptt.entities.Step;
 import com.ptt.entities.StepParameterRelation;
 
@@ -44,9 +45,8 @@ public class PttClient {
     planService.readPlanRun(planRunId).andThen((planServiceEvent) -> {
       mqttClient.connect(mqttPort, mqttAddress, (mqttClientEvent) -> {
         QueueElement queueElement = new QueueElement(planServiceEvent.result().getPlan().getStart());
-        LocalDateTime endTime = LocalDateTime.now().plusSeconds(planServiceEvent.result().getDuration());
-
-        executePlanDuration(queueElement, endTime)
+        
+        executePlanDuration(queueElement, planServiceEvent.result())
         .onFailure((failureEvent) -> {
           failureEvent.printStackTrace();
           System.out.println("TEST FAILURE: " + failureEvent.getMessage());
@@ -64,11 +64,12 @@ public class PttClient {
 
 
     @SuppressWarnings("rawtypes")
-    private Future<CompositeFuture> executePlanDuration(QueueElement queueElement, LocalDateTime endTime) {
-    return doStep(planRunId, queueElement, endTime)
+    private Future<CompositeFuture> executePlanDuration(QueueElement queueElement, PlanRun planRun) {
+      LocalDateTime endTime = LocalDateTime.now().plusSeconds(planRun.getDuration());
+      return doStep(planRunId, queueElement, endTime, planRun)
             .compose(compositeResult -> {
                 List<Future> s = new ArrayList<>();
-                if(LocalDateTime.now().isBefore(endTime)) s.add(executePlanDuration(queueElement,endTime));
+                if(LocalDateTime.now().isBefore(endTime) && !planRun.isRunOnce()) s.add(executePlanDuration(queueElement,planRun));
                 return CompositeFuture.join(s);
             })
         .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> {
@@ -79,7 +80,7 @@ public class PttClient {
   }
 
   @SuppressWarnings("rawtypes")
-  private Future<CompositeFuture> doStep(long planRunId, QueueElement qe, LocalDateTime endTime) {
+  private Future<CompositeFuture> doStep(long planRunId, QueueElement qe, LocalDateTime endTime, PlanRun planRun) {
     System.out.println(qe.getStep().getName());
     return vertx.executeBlocking((Promise<ExecutedStep> event) -> {
       Step step = qe.getStep();
@@ -94,7 +95,7 @@ public class PttClient {
       }
     }).compose((blockedEvent) -> {
       List<Future> s = new ArrayList<>();
-      if(blockedEvent == null || LocalDateTime.now().isAfter(endTime)) {
+      if(blockedEvent == null || LocalDateTime.now().isAfter(endTime) && !planRun.isRunOnce()) {
         return CompositeFuture.join(s);
       }
       try {
@@ -111,7 +112,7 @@ public class PttClient {
             newQueueElement.getParameters().put(param.getTo().getName(), parameterContent);
           }
           for (int i = 0; i < nextStep.getRepeatAmount(); i++) {
-            s.add(doStep(planRunId, newQueueElement, endTime));
+            s.add(doStep(planRunId, newQueueElement, endTime, planRun));
           }
         }
       } catch (IOException e) {
