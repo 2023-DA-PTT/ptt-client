@@ -1,6 +1,7 @@
 package com.ptt.control;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,12 +44,9 @@ public class PttClient {
     planService.readPlanRun(planRunId).andThen((planServiceEvent) -> {
       mqttClient.connect(mqttPort, mqttAddress, (mqttClientEvent) -> {
         QueueElement queueElement = new QueueElement(planServiceEvent.result().getPlan().getStart());
-        doStep(planRunId, queueElement)
-        .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> {
-          mqttClient.disconnect().andThen((mqttDisconnectEvent) -> {
-            vertx.close();
-          });
-        }))
+        LocalDateTime endTime = LocalDateTime.now().plusSeconds(planServiceEvent.result().getDuration());
+
+        executePlanDuration(queueElement, endTime)
         .onFailure((failureEvent) -> {
           failureEvent.printStackTrace();
           System.out.println("TEST FAILURE: " + failureEvent.getMessage());
@@ -64,8 +62,24 @@ public class PttClient {
     });
   }
 
+
+    @SuppressWarnings("rawtypes")
+    private Future<CompositeFuture> executePlanDuration(QueueElement queueElement, LocalDateTime endTime) {
+    return doStep(planRunId, queueElement, endTime)
+            .compose(compositeResult -> {
+                List<Future> s = new ArrayList<>();
+                if(LocalDateTime.now().isBefore(endTime)) s.add(executePlanDuration(queueElement,endTime));
+                return CompositeFuture.join(s);
+            })
+        .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> {
+          mqttClient.disconnect().andThen((mqttDisconnectEvent) -> {
+            vertx.close();
+          });
+        }));
+  }
+
   @SuppressWarnings("rawtypes")
-  private Future<CompositeFuture> doStep(long planRunId, QueueElement qe) {
+  private Future<CompositeFuture> doStep(long planRunId, QueueElement qe, LocalDateTime endTime) {
     System.out.println(qe.getStep().getName());
     return vertx.executeBlocking((Promise<ExecutedStep> event) -> {
       Step step = qe.getStep();
@@ -80,7 +94,7 @@ public class PttClient {
       }
     }).compose((blockedEvent) -> {
       List<Future> s = new ArrayList<>();
-      if(blockedEvent == null) {
+      if(blockedEvent == null || LocalDateTime.now().isAfter(endTime)) {
         return CompositeFuture.join(s);
       }
       try {
@@ -97,7 +111,7 @@ public class PttClient {
             newQueueElement.getParameters().put(param.getTo().getName(), parameterContent);
           }
           for (int i = 0; i < nextStep.getRepeatAmount(); i++) {
-            s.add(doStep(planRunId, newQueueElement));
+            s.add(doStep(planRunId, newQueueElement, endTime));
           }
         }
       } catch (IOException e) {
