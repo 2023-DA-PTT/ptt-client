@@ -45,8 +45,9 @@ public class PttClient {
     planService.readPlanRun(planRunId).andThen((planServiceEvent) -> {
       mqttClient.connect(mqttPort, mqttAddress, (mqttClientEvent) -> {
         QueueElement queueElement = new QueueElement(planServiceEvent.result().getPlan().getStart());
-        
-        executePlanDuration(queueElement, planServiceEvent.result())
+        PlanRun planRun = planServiceEvent.result();
+
+        executePlanDuration(queueElement, planRun, LocalDateTime.now().plusSeconds(planRun.getDuration()))
         .onFailure((failureEvent) -> {
           failureEvent.printStackTrace();
           System.out.println("TEST FAILURE: " + failureEvent.getMessage());
@@ -64,12 +65,14 @@ public class PttClient {
 
 
     @SuppressWarnings("rawtypes")
-    private Future<CompositeFuture> executePlanDuration(QueueElement queueElement, PlanRun planRun) {
-      LocalDateTime endTime = LocalDateTime.now().plusSeconds(planRun.getDuration());
+    private Future<CompositeFuture> executePlanDuration(QueueElement queueElement, PlanRun planRun, LocalDateTime endTime) {
       return doStep(planRunId, queueElement, endTime, planRun)
             .compose(compositeResult -> {
                 List<Future> s = new ArrayList<>();
-                if(LocalDateTime.now().isBefore(endTime) && !planRun.isRunOnce()) s.add(executePlanDuration(queueElement,planRun));
+
+                if(LocalDateTime.now().isBefore(endTime) && !planRun.isRunOnce())
+                  s.add(executePlanDuration(queueElement,planRun, endTime));
+
                 return CompositeFuture.join(s);
             })
         .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> {
