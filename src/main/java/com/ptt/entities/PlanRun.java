@@ -13,6 +13,7 @@ public class PlanRun {
         this.plan = plan;
         this.startTime = startTime;
         this.duration = duration;
+        this.runOnce = runOnce;
     }
 
     public boolean isRunOnce() {

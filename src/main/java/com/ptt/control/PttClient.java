@@ -92,7 +92,7 @@ public class PttClient {
       }
     }).compose((blockedEvent) -> {
       List<Future> s = new ArrayList<>();
-      if(blockedEvent == null || LocalDateTime.now().isAfter(endTime) && !planRun.isRunOnce()) {
+      if(blockedEvent == null || (LocalDateTime.now().isAfter(endTime) && !planRun.isRunOnce())) {
         return CompositeFuture.join(s);
       }
       try {
