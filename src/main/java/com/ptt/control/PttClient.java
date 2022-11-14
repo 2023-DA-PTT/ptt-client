@@ -32,7 +32,7 @@ public class PttClient {
   private final long planRunId;
 
   public PttClient(SmallRyeConfig config, int mqttPort, String mqttAddress, long planRunId) {
-    this.vertx = Vertx.vertx();;
+    this.vertx = Vertx.vertx();
     this.mqttClient = MqttClient.create(vertx);
     this.stepExecution = new StepExecution(mqttClient, planRunId);
     this.planService = new PlanService(vertx, config);
@@ -42,21 +42,17 @@ public class PttClient {
   }
 
   public void runTestPlan() {
-    planService.readPlanRun(planRunId).andThen((planServiceEvent) -> {
-      mqttClient.connect(mqttPort, mqttAddress, (mqttClientEvent) -> {
-        QueueElement queueElement = new QueueElement(planServiceEvent.result().getPlan().getStart());
-        PlanRun planRun = planServiceEvent.result();
+    planService.readPlanRun(planRunId).andThen((planServiceEvent) -> mqttClient.connect(mqttPort, mqttAddress, (mqttClientEvent) -> {
+      QueueElement queueElement = new QueueElement(planServiceEvent.result().getPlan().getStart());
+      PlanRun planRun = planServiceEvent.result();
 
-        executePlanDuration(queueElement, planRun, LocalDateTime.now().plusSeconds(planRun.getDuration()))
-        .onFailure((failureEvent) -> {
-          failureEvent.printStackTrace();
-          System.out.println("TEST FAILURE: " + failureEvent.getMessage());
-          mqttClient.disconnect().andThen((mqttDisconnectEvent) -> {
-            vertx.close();
-          });
-        });
+      executePlanDuration(queueElement, planRun, LocalDateTime.now().plusSeconds(planRun.getDuration()))
+      .onFailure((failureEvent) -> {
+        failureEvent.printStackTrace();
+        System.out.println("TEST FAILURE: " + failureEvent.getMessage());
+        mqttClient.disconnect().andThen((mqttDisconnectEvent) -> vertx.close());
       });
-    }).onFailure((planServiceFailureEvent) -> {
+    })).onFailure((planServiceFailureEvent) -> {
       System.out.println("Could not read Test Run: ");
       planServiceFailureEvent.printStackTrace();
       vertx.close();
@@ -75,11 +71,9 @@ public class PttClient {
 
                 return CompositeFuture.join(s);
             })
-        .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> {
-          mqttClient.disconnect().andThen((mqttDisconnectEvent) -> {
-            vertx.close();
-          });
-        }));
+        .andThen((stepEvent) -> stepEvent.result().andThen((compEvent) -> mqttClient.disconnect().andThen((mqttDisconnectEvent) -> {
+          vertx.close();
+        })));
   }
 
   @SuppressWarnings("rawtypes")
@@ -87,7 +81,7 @@ public class PttClient {
     System.out.println(qe.getStep().getName());
     return vertx.executeBlocking((Promise<ExecutedStep> event) -> {
       Step step = qe.getStep();
-      ExecutedStep execStep = null;
+      ExecutedStep execStep;
       try {
         execStep = stepExecution.executeStep(step, qe.getParameters());
         event.complete(execStep);
